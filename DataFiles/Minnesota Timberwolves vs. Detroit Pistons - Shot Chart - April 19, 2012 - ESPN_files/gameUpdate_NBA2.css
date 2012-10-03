@@ -1,0 +1,76 @@
+/* Begin Styles for Top Scoreboard */
+
+
+#mainWrapper { font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px; color: #000000;}
+
+/* Positional ID styles */
+
+
+#lastScoring {position: relative; width: 215px; height: 114px; background-image: url(http://espn.go.com/nba/gamepackage/i/lastPlayBG.jpg); background-repeat: no-repeat;}
+#scoringImage {position: absolute; left: 4px; top: 4px; width: 65px; height: 90px;}
+#scoringData {position: absolute; width: 130px; left: 77px; top: 4px; font-weight: bold; color: #000}
+#photoArea {width: 730px; height: 114px; background-color: #f2f2f2;}
+#playLog {height: 345px; overflow:hidden;}
+.storyTitle {font-size: 20px; font-weight: bold; color: #000000;}
+		
+			
+
+.headerBar {height: 14px; background-color: #616161; color: #FFF;}
+.headerBar a {color: #FFFFFF}
+a.standardLink:link { color: #333333;}
+a.standardLink:hover { color: #333333;}
+a.standardLink:visited { color: #333333;}
+.statTitle {color: #FFF}
+.statHeading {font-size: 9px}
+.statTable a { color: #333333}
+.statTable a:visited {color: #333333}
+.statTable a:hover {color: #A97B00}
+
+.bbL {border-bottom: 1px solid #CCCCCC}
+
+
+.playBox {background-color: #F2F2F2; border-bottom: 1px dashed #999999; width: 215px;}
+.play_foul {font-weight: bold; color: #A20000}
+.play_score {font-weight: bold; color: #000}
+
+
+#lastPlay {position: relative; width: 364px; height: 114px; background-image: url(http://espn.go.com/nba/gamepackage/i/grassBG.jpg);}
+
+.bodytext			A {color: #000000;}
+.bodytext			A:visited {color: #000000;}
+.bodytext			A:hover {color: #951515;}	
+
+.statName			{color: #000000;					
+					font-style: normal;
+					font-size: 8pt;
+					font-family: Verdana, Arial, Helvetica, sans-serif}
+.statName			A {color: #000000;}
+.statName			A:visited {color: #000000;}
+.statName			A:hover {color: #951515;}
+
+.xb			{color: #000000;
+					font-weight: bold;
+					font-size: 9px;
+					font-family: Verdana, Arial, Helvetica, sans-serif}
+.xb			A {color: #000000;}
+.xb			A:visited {color: #000000;}
+.xb			A:hover {color: #951515;} 
+
+.alsosee			{color: #000000;	
+					line-height: 18px;			
+					font-style: normal;
+					font-size: 8pt;
+					font-family: Verdana, Arial, Helvetica, sans-serif}
+.alsosee			A {color: #000000;					line-height: 14px;	}
+.alsosee			A:visited {color: #000000;					line-height: 2px;	}
+.alsosee			A:hover {color: #951515;					line-height: 2px;	}
+			
+.head			 {color: #ffffff;					
+					font-style: bold;
+					font-size: 7.5pt;
+					font-family: Verdana, Arial, Helvetica, sans-serif}
+
+
+
+
+

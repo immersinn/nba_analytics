@@ -1,0 +1,70 @@
+.player-popup-content {
+	position:absolute;
+	z-index:50;
+	height:304px;
+	width:350px;
+}
+.player-popup-arrow {
+	position:absolute;
+	z-index:50;
+}
+.player-popup-content .player-popup-background {
+	background:url(http://a.espncdn.com/i/mlb/playerpopup/popup_middle.png);
+	padding-left:9px;
+	padding-right:9px;
+}
+.player-popup-content .mod-content {
+	padding:10px !important;
+	margin-bottom:0px !important;
+}
+.player-popup-content .tablehead {
+	padding-top:5px;
+	margin:0px;
+	font-size:inherit;
+	border:medium none;
+	border-collapse:separate !important;
+	border-spacing:1px;
+	line-height:1.3em;
+	width:100%;
+}
+.player-popup-content .tablehead td {
+	font-size:11px;
+	vertical-align:middle;
+	padding:2px 3px;
+}
+.player-popup-content .stathead td {
+	font-size:11px;
+	font-weight:normal;
+	border:none;
+	padding:4px 5px;
+	font-family:helvetica,arial,sans-serif;
+}
+.player-popup-content .evenrow td {
+	background-color:#F1F1F1;
+}
+.player-popup-content a:visited {
+	color:#225DB7 !important;
+}
+.player-popup-content a:hover {
+	text-decoration:none !important;
+}
+.player-popup-addfav-content {
+	background:#C5D6ED url(http://a2.espncdn.com/prod/assets/btn-blue-bg.gif) repeat-x scroll;
+	border: 1px solid #A7A7A7;
+	font-family:Verdana,Arial,Helvetica,sans-serif;
+	font-size:10px;
+	font-weight:bold;
+	float:right;
+	padding:2px 8px 2px 6px;
+}
+.player-popup-myfav-content {
+	background:#E3D694 url(http://a1.espncdn.com/prod/assets/memberservices/ms-bg-fave.gif) repeat-x scroll left top;
+	border: 1px solid #A7A7A7;
+	font-family:Verdana,Arial,Helvetica,sans-serif;
+	font-size:10px;
+	font-weight:bold;
+	float:right;
+	padding:2px 8px 2px 6px;
+	color:#4E4E4E;
+}
+
