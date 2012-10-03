@@ -19,7 +19,7 @@ import urllib2
 
 from BeautifulSoup import BeautifulSoup as Soup
 
-from parseESPNPages_new import processESPNpage
+from parseESPNPages import processESPNpage
 from argshandle import getargs
 from picklingIsEasy import picklehandle
 
@@ -31,17 +31,20 @@ ncaa_root   = "http://scores.espn.go.com/ncb/scoreboard?date=" + date
 '''
 '''Links and paths'''
 nba_root        = "http://scores.espn.go.com/nba/scoreboard?date="
-ncaa_root       = "http://scores.espn.go.com/ncb/scoreboard?date="
 nba_ext         = "http://scores.espn.go.com/nba/recap?gameId="
 nba_box         = "http://scores.espn.go.com/nba/boxscore?gameId="
 nba_pbp         = "http://scores.espn.go.com/nba/playbyplay?gameId="
-nba_shots       = "http://scores.espn.go.com/nba/shotchart?gameId="
+nba_shots       = "http://scores.espn.go.com/nba/shotchart?gameId="     # i wish i could grab this
+
+ncaa_root       = "http://scores.espn.go.com/ncb/scoreboard?date="
+
 default_path    = "/Users/sinn/NBA-Data-Stuff/DataFiles"
 
 root_dict       = {'NBA':nba_root,
-                   'NCAM':ncaa_root
+                   'NCAM':ncaa_root         # bit of a tease; nothing done w/ this yet...
                    }
 null_value      = '&nbsp;'
+space_holder = u'\xc2\xa0'                  # curiousior and curiousior (sp?)
 max_args        = 2
 
 def runmain(gameids, argdict):
@@ -68,7 +71,7 @@ def getext(gameid):
     try:
         url = nba_ext + str(gameid)
         print url
-        ext = processESPNpage(url, 'extta')
+        ext = processESPNpage(url, 'extra')
         return ext
     except ValueError:
         # need some stuff to spit out error info...
@@ -141,8 +144,7 @@ def getidswebs(date, cat='NBA'):
         except urllib2.URLError:
             print 'Failed to fetch ' + root_dict[cat]+date
             
-''''''
-
+'''Just makes sure date isn't in future'''
 def verifydate(date):
     '''Checks to make sure provided date is valid format, in past or now'''
     now = datetime.datetime.now()
@@ -150,16 +152,17 @@ def verifydate(date):
         print 'WARNING: non-valid date or date in invalid format'
     try:
         if int(date[:4])  <= now.year and\
-           int(date[4:6]) <= now.month and\
-           int(date[6:])  <= now.day:
+           int(date[4:6]) < now.month or\
+           (int(date[4:6]) == now.month and int(date[6:])  <= now.day):
             return True
         else:
+            print "WARNING: future date provided; this isn't a crystal ball!!"
             return False
     except ValueError:
         print 'non-valid date or date in invalid format'
         
         
-
+'''For running from terminal;'''
 if __name__=='__main__':
     """
     Default run from terminal; grab the text file with a list of game
@@ -169,6 +172,7 @@ if __name__=='__main__':
     argdict = dict()
     argdict['date']     = args[0]
     argdict['outname']  = args[1]
+    argdict['path'] = default_path
 ##    argdict = getargs(argslist=['file', 'date', 'outname', 'outform'])
 ##    if not argdict.has_key('outform'): argdict['outform'] = 'processed'
 ##    if not argdict.has_key('outname'): argdict['outname'] = "temp01_PBP.pkl"

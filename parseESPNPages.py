@@ -1,6 +1,8 @@
 '''
 Parsing modules specifically for handling ESPN sports pages (tested only on
-NBA data thus far); grabs page @ url and gets pbp / box / extra (all?)
+NBA data thus far); grabs page @ url and gets pbp / box / extra (all?);
+should be called by a function that is iterating over games for a particular
+day, and push data to code that transmits it to a db
 '''
 import sys, os, re
 from bs4 import BeautifulSoup as BS
@@ -28,8 +30,7 @@ def processESPNpage(url, ptype):
 
 def getESPNData(url, ptype):
     '''
-    Handles which data is being called for; pulled raw and soup out of
-    statements to open potential to do all at once;
+    Handles which data is being called for; 
     '''
     raw     = makePage(url)
     soup    = makeSoup(raw, url)

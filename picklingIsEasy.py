@@ -8,11 +8,11 @@ def picklehandle(data, argdict):
     print "Pickling files..."
     if pbp_store:
         fname = argdict['outname'] + "_PBP.pkl"
-        fname = os.path.join(default_path, fname)
+        fname = os.path.join(argdict['path'], fname)
         pickledata(fname, pbp_store)
     if box_store:
         fname = argdict['outname'] + "_BOX.pkl"
-        fname = os.path.join(default_path, fname)
+        fname = os.path.join(argdict['path'], fname)
         pickledata(fname, box_store)
 
 def pickledata(fname, data):

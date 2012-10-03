@@ -1,3 +1,9 @@
+'''
+Just whatever I'm currently, actively doing in the IDLE terminal when I
+want to keep track of stuff I do...
+'''
+
+
 import sys, os
 from BeautifulSoup import bs4 as bs
 import prepworkURL
