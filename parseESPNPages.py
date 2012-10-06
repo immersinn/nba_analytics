@@ -120,35 +120,36 @@ def getESPNplayerlinks(summary):
 # Grabs some Spurs - Nuggets game from spr 2012, gets pbp data, write to file
 if __name__=="__main__":
 
-##    '''Case for pbp data...'''
-##    page = "http://scores.espn.go.com/nba/playbyplay?gameId=320223007&period=0"
-##    print('grabbing page and data..')
-##    
-##    data = processESPNpage(page, 'pbp')
-##    print('data grabbed, writing file...')
-##    with open('/Users/sinn/Desktop/NBA_TempGame_pbp.txt', 'w') as f1:
-##        f1.writelines('\t'.join(data['head']) + '\n')
-##        for line in data['content']:
-##            f1.writelines('\t'.join(line) + '\n')
-
-    '''Case for box score data...'''
-    page = "http://scores.espn.go.com/nba/boxscore?gameId=320223007"
+    '''Case for pbp data...'''
+    page = "http://espn.go.com/nba/playbyplay?gameId=320223025&period=0"
     print('grabbing page and data..')
-
     
-    data = processESPNpage(page, 'box')
-    print(data['playerlinks'])
+    data = processESPNpage(page, 'pbp')
     print('data grabbed, writing file...')
-    with open('/Users/sinn/Desktop/NBA_TempGame_box_details.txt', 'w') as f1:
-        for line in data['details']:
-            f1.writelines('\t'.join(line) + '\n')
-
-    with open('/Users/sinn/Desktop/NBA_TempGame_box_content.txt', 'w') as f1:
+    with open('/Users/sinn/Desktop/NBA_TempGame_pbp.txt', 'w') as f1:
+        f1.writelines('\t'.join(data['head']) + '\n')
         for line in data['content']:
             f1.writelines('\t'.join(line) + '\n')
 
-    with open('/Users/sinn/Desktop/NBA_TempGame_box_playerref.txt', 'w') as f1:
-        playerlinks = data['playerlinks']
-        for key in playerlinks.keys():
-            f1.writelines(key + '\t' + playerlinks[key] + '\n')
+##    '''Case for box score data...'''
+##    page = "http://scores.espn.go.com/nba/boxscore?gameId=320223025"
+##    print('grabbing page and data..')
+##
+##    
+##    data = processESPNpage(page, 'box')
+##    #print(data['playerlinks'])
+##    print('data grabbed, writing file...')
+##    with open('/Users/sinn/Desktop/NBA_TempGame_box_details.txt', 'w') as f1:
+##        for line in data['details']:
+##            f1.writelines('\t'.join(line) + '\n')
+##
+##    with open('/Users/sinn/Desktop/NBA_TempGame_box_content.txt', 'w') as f1:
+##        for line in data['content']:
+##            f1.writelines('\t'.join(line) + '\n')
+##
+##    with open('/Users/sinn/Desktop/NBA_TempGame_box_playerref.txt', 'w') as f1:
+##        playerlinks = data['playerlinks']
+##        for key in playerlinks.keys():
+##            f1.writelines(key + '\t' + playerlinks[key] + '\n')
+    
     print('fine')
