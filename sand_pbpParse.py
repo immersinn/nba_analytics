@@ -102,15 +102,15 @@ for Q in quarters_subs.keys():
         old_line['Score End'] = score
         new_line['Score Start'] = score
         
-        new_line['P_in']    = sub[0]
-        new_line['P_out']   = sub[1]
+        new_line['P_in']    = sub[0].lower().strip()
+        new_line['P_out']   = sub[1].lower().strip()
 
         track_subs.append(old_line)
         old_line = new_line.copy()
 
     old_line['Time End'] = '0:00'
-    score = pbp_quarters_lines[Q-1][-3].split('\t')[2] \
-            if Q < 4 else pbp_quarters_lines[Q-1][-4].split('\t')[2]
+    score = pbp_quarters_lines[Q][-3].split('\t')[2] \
+            if Q < 4 else pbp_quarters_lines[Q][-4].split('\t')[2]
     old_line['Score End'] = score
     track_subs.append(old_line)
 
@@ -155,13 +155,14 @@ def getPlayersInLine(pbpLine):
 '''Get which players start each Quarter'''
 def getInitialPlayers(track_subs, players_on_floor):
     IPs = {}
-    for Q in range(1,4):
+    for Q in [1,2,3,4]:
         q_ts    = [line for line in track_subs if line['Q']==Q]
         q_pof   = [line for line in players_on_floor if line['Q']==Q]
         IPs[Q] = getQInitialPlayers(q_ts, q_pof)
+    return IPs
 
 
-def getQInitialPlayers(q_ts, q_pof)
+def getQInitialPlayers(q_ts, q_pof):
     initial_players = set()
     subedin_players = set()
     i = 0
@@ -172,9 +173,9 @@ def getQInitialPlayers(q_ts, q_pof)
         # add subed in player to 'no fly' list
         # add subed out player to ip if not on 'no fly' list
         try:
-            subedin_players.add(q_ts['P_in'])
-            if q_ts['P_out'] not in subedin_players:
-                initial_players.add(q_track_subs['P_out'])
+            subedin_players.add(q_ts[i]['P_in'])
+            if q_ts[i]['P_out'] not in subedin_players:
+                initial_players.add(q_ts[i]['P_out'])
         except KeyError:
             pass
         i += 1      # update line index  
