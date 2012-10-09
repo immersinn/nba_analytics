@@ -10,6 +10,7 @@ each entry of track_subs =
  'P_in':player substituted in, 'P_out':player subed out (str),
  'Players':players on the court at that time, including substitution
 '''
+import os, sys, re
 
 
 def loadGameFilesTxt(basepath):
@@ -27,7 +28,7 @@ def loadGameFilesTxt(basepath):
         player_ref = f1.read().split('\n')[1:-1]
     return pbp, box, details, player_ref
 
-def loafGameFilesDB():
+##def loadGameFilesDB():
 
 def PBPsplitQuarters(pbp):
     '''Split by quarters'''
@@ -55,6 +56,14 @@ def getUsedNames(player_ref):
                     ' '.join(entry[1].split('/')[-1].split('-'))
     return player_names
 
+def getESPNIDs(player_ref):
+    player_IDs = {}
+    for entry in player_ref:
+        entry = entry.split('\t')
+        player_IDs[' '.join(entry[1].split('/')[-1].split('-'))] =\
+                       int(entry[1].split('/')[-2])
+    return player_IDs
+
 def getTeamPlayers(box, details, player_names):
     '''Determine all players for each team from the box score table'''
     start_index = [i for i in range(len(details)) if details[i].find('STARTERS')>-1]
@@ -71,14 +80,19 @@ def getTeamPlayers(box, details, player_names):
     team_2 = [player_names[name] for name in team_2]
     return team_1, team_2
 
-def getSubTrack(pbp_quarters_lines, P):
+def getSubTrack(pbp_quarters_lines, P, player_IDs):
     quarters_subs, quarters_subs_index = getSubIndex(pbp_quarters_lines)
     track_subs =\
                getInitialSubTrack(pbp_quarters_lines, quarters_subs)
     players_on_floor =\
                      getPlayersOnFloor(quarters_subs_index, pbp_quarters_lines, P)
     IPs = getInitialPlayers(track_subs, players_on_floor)
+    
+    for key in IPs.keys():
+        print IPs[key]
+        
     track_subs = getFinalSubTrack(track_subs, IPs)
+    track_subs = UpdateNames2IDs(track_subs, player_IDs)
     return track_subs
 
 def getSubIndex(pbp_quarters_lines):
@@ -156,6 +170,15 @@ def getFinalSubTrack(track_subs, IPs):
             i += 1
     return track_subs
 
+def UpdateNames2IDs(track_subs, player_IDs):
+    '''Change all the player names to player IDs, via ESPN pages'''
+    for i,line in enumerate(track_subs):
+        track_subs[i]['Players'] = [player_IDs[p] for p in line['Players']]
+        if 'P_in' in line.keys():
+            track_subs[i]['P_in'] = player_IDs[line['P_in']]
+            track_subs[i]['P_out'] = player_IDs[line['P_out']]
+    return track_subs
+
 def getPlayersOnFloor(quarters_subs_index, pbp_quarters_lines, P):
     '''Get set of players named during each sub-section of each quarter'''
     players_on_floor = []
@@ -173,7 +196,7 @@ def getPlayersOnFloor(quarters_subs_index, pbp_quarters_lines, P):
              'Players':getPlayersInPlay(pbp_quarters_lines[Q][sub_index:],P)})
     return players_on_floor
 
-def getPlayersInPlay(pbpLines,P):
+def getPlayersInPlay(pbpLines, P):
     current_players = set()
     for line in pbpLines:
         new_players = getPlayersInLine(line,P)
@@ -181,18 +204,18 @@ def getPlayersInPlay(pbpLines,P):
             current_players.add(p)
     return list(current_players)
 
-def getPlayersInLine(pbpLine,P):
+def getPlayersInLine(pbpLine, P):
     players = list()
     pbpLine = pbpLine.split('\t')
     if len(pbpLine)==4:
         pbpLine = pbpLine[3] if len(pbpLine[1])==2 else pbpLine[1]
-        player = matchPlayer(pbpLine,players)
+        player = matchPlayer(pbpLine,P)
         if player:
             players.append(player)
             pbpLine = re.search(r'\((.*)\)',pbpLine)
             if pbpLine:
                 players.append(matchPlayer(pbpLine.groups()[0], P))
-    return(players)
+    return players
 
 def matchPlayer(pbpLine, P):
     if ' '.join(pbpLine.split(' ')[:2]).lower() in P:
@@ -228,7 +251,9 @@ def getQInitialPlayers(q_ts, q_pof):
         # add found active players that have not been subed in
         for p in set(q_pof[i]['Players']).difference(subedin_players):
             initial_players.add(p)
-        i += 1      # update line index  
+        i += 1      # update line index
+    if len(initial_players) != 10:
+        print 'Warning!! All players not found!!!!!!!!!!1'
     return initial_players
 
 
@@ -244,4 +269,5 @@ if __name__=="__main__":
     '''Get player names for each team'''
     team_1, team_2 = getTeamPlayers(box, details, getUsedNames(player_ref))
     '''Construct the same-player-interval data'''
-    track_subs = getSubTrack(pbp_quarters_lines, team_1+team_2)
+    track_subs = getSubTrack(pbp_quarters_lines, team_1+team_2, getESPNIDs(player_ref))
+    for entry in track_subs[:10]: print entry
