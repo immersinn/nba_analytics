@@ -12,7 +12,6 @@ each entry of track_subs =
 '''
 import os, sys, re
 
-
 def loadGameFilesTxt(basepath):
     '''
     Load the pbp (raw-ish) text file;
@@ -29,6 +28,7 @@ def loadGameFilesTxt(basepath):
     return pbp, box, details, player_ref
 
 ##def loadGameFilesDB():
+
 
 def PBPsplitQuarters(pbp):
     '''Split by quarters'''
@@ -87,10 +87,6 @@ def getSubTrack(pbp_quarters_lines, P, player_IDs):
     players_on_floor =\
                      getPlayersOnFloor(quarters_subs_index, pbp_quarters_lines, P)
     IPs = getInitialPlayers(track_subs, players_on_floor)
-    
-    for key in IPs.keys():
-        print IPs[key]
-        
     track_subs = getFinalSubTrack(track_subs, IPs)
     track_subs = UpdateNames2IDs(track_subs, player_IDs)
     return track_subs
@@ -258,7 +254,8 @@ def getQInitialPlayers(q_ts, q_pof):
 
 
 '''
-Put everything together to be run auto-magically:
+Put everything together to be run auto-magically; doesn't save anything yet,
+just runs and displays sample of final result in terminal;
 '''
 if __name__=="__main__":
     basepath = '/Users/sinn/Desktop'

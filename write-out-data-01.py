@@ -1,4 +1,4 @@
-
+'''NFIdea what this was / is for....'''
 
 def write_out_games(gamestats, outname):
     '''Writes out game stats file for "runparse"'''

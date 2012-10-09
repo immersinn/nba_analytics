@@ -1,3 +1,9 @@
+'''
+General set of tools for grabbing web pages and extracting relevant info
+from them; as of now, 'geared' towards use with ESPN parsing stuff; hope-
+fully will expand to other ventures in the near future;
+'''
+
 import sys, os
 import urllib2
 import HTMLParser
