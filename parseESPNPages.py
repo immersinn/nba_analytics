@@ -8,7 +8,6 @@ import sys, os, re
 from bs4 import BeautifulSoup as BS
 from nltk import clean_html
 
-import genBSandURLtools
 from prepworkURL import makePage
 from prepworkURL import makeSoup
 
