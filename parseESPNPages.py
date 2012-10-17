@@ -41,7 +41,7 @@ def getESPNData(url, ptype):
     elif ptype=='pbp':
         labels  = CONTENT_DICT[ptype]
         tables  = soup.find_all('div', {labels[0]:labels[1]})
-        data    = getESPNpbp(tables[0])
+        data    = getESPNpbp(tables[1])
     elif ptype=='extra':
         if raw: text = getText(raw)
         else: text = ''
@@ -120,13 +120,20 @@ def getESPNplayerlinks(summary):
 # Grabs some Spurs - Nuggets game from spr 2012, gets pbp data, write to file
 if __name__=="__main__":
 
+    '''Set the correct directory'''
+    if os.path.isdir('/home/immersinn/NBA-Data-Stuff'):     #dell
+        default_path = '/home/immersinn/NBA-Data-Stuff'
+    elif os.path.isdir('/Users/sinn/NBA-Data-Stuff'):
+        defualt_path = '/home/immersinn/NBA-Data-Stuff'
+
     '''Case for pbp data...'''
     page = "http://espn.go.com/nba/playbyplay?gameId=320223025&period=0"
     print('grabbing page and data..')
     
     data = processESPNpage(page, 'pbp')
     print('data grabbed, writing file...')
-    with open('/Users/sinn/Desktop/NBA_TempGame_pbp.txt', 'w') as f1:
+    with open(os.path.join(default_path, 'DataFiles/TestOut/NBA_TempGame_pbp.txt'),
+              'w') as f1:
         f1.writelines('\t'.join(data['head']) + '\n')
         for line in data['content']:
             f1.writelines('\t'.join(line) + '\n')
