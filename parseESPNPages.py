@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Parsing modules specifically for handling ESPN sports pages (tested only on
 NBA data thus far); grabs page @ url and gets pbp / box / extra (all?);
@@ -27,6 +28,16 @@ def processESPNpage(url, ptype):
     except KeyError:
         print("Invalid ptype %s provided" % (ptype))
 
+def processESPNShotsPage(url):
+    '''
+    Handles grabbing the x,y coords from the ESPN shots page;
+    returns a dict;
+    '''
+    shotSoup = prepworkURL.makeSoup(prepworkURL.makePage(url), url)
+    shots = shotSoup.findAll('Shot')
+    shotDict = getESPNShotDict(shots)
+    return shotDict
+
 def getESPNData(url, ptype):
     '''
     Handles which data is being called for; 
@@ -40,7 +51,7 @@ def getESPNData(url, ptype):
     elif ptype=='pbp':
         labels  = CONTENT_DICT[ptype]
         tables  = soup.find_all('div', {labels[0]:labels[1]})
-        data    = getESPNpbp(tables[1])
+        data    = getESPNpbp(tables[1])                     # check this plz
     elif ptype=='extra':
         if raw: text = getText(raw)
         else: text = ''
@@ -91,6 +102,41 @@ def getESPNbox(table):
     return {'details':details,
             'content':content,
             'playerlinks':playerlink_dict}
+
+def getESPNShotDict(shots):
+    '''
+    Components of the shot:
+    d       --> pbp-esq discription (Made 19ft jumper 11:44 in 1st Qtr."
+    id      --> the shot id (gameID+xxxxx)
+    made    --> T/F
+    p       --> player shooting (same as pbp name)
+    pid     --> player ID (super usefull)
+    qtr     --> quarter (what does OT look like??)
+    t       --> ?? values: a, h,
+    x       --> x-cord where shot was taken from
+    y       --> y-cord where shot was taken from
+
+    I'm assuming this holds (from basketballgeek.com/data)
+    How do I interpret the (x,y) shot location coordinates?:
+    If you are standing behind the offensive team’s hoop then
+    the X axis runs from left to right and the Y axis runs from
+    bottom to top. The center of the hoop is located at (25, 5.25).
+    x=25 y=-2 and x=25 y=96 are free-throws (8ft jumpers)
+    '''
+
+    '''Transform into a dictionary; worry about matching up to pbp later...'''
+    ShotDict = {}
+    for s in shots:
+        ShotDict[s['id']] = \
+                          {'Q':s['qtr'],
+                           'time' : s['d'].split(' ')[3],
+                           'made' : u'0' if s['made']=='false' else u'1',
+                           'pts' : u'2' if s['d'].find('jumper')>-1 else u'3',
+                           'p' : s['p'],
+                           't' : s['t'],
+                           'x' : s['x'],
+                           'y' : s['y']}
+    return ShotDict
 
 def getText(raw):
     '''Gets same summary text from recap page'''
