@@ -17,7 +17,7 @@ CONTENT_DICT    = {'pbp':('class', 'mod-content'),
                    'box':('id', 'my-players-table')}
 EXTRA_LIST      = [('class','game-time-location')]
 
-def processESPNpage(url, ptype):
+def processESPNPage(url, ptype):
     '''ptype should be "pbp" or "box" at this point'''
     try:
         data    = getESPNData(url, ptype)
@@ -183,25 +183,25 @@ if __name__=="__main__":
         for line in data['content']:
             f1.writelines('\t'.join(line) + '\n')
 
-##    '''Case for box score data...'''
-##    page = "http://scores.espn.go.com/nba/boxscore?gameId=320223025"
-##    print('grabbing page and data..')
-##
-##    
-##    data = processESPNpage(page, 'box')
-##    #print(data['playerlinks'])
-##    print('data grabbed, writing file...')
-##    with open('/Users/sinn/Desktop/NBA_TempGame_box_details.txt', 'w') as f1:
-##        for line in data['details']:
-##            f1.writelines('\t'.join(line) + '\n')
-##
-##    with open('/Users/sinn/Desktop/NBA_TempGame_box_content.txt', 'w') as f1:
-##        for line in data['content']:
-##            f1.writelines('\t'.join(line) + '\n')
-##
-##    with open('/Users/sinn/Desktop/NBA_TempGame_box_playerref.txt', 'w') as f1:
-##        playerlinks = data['playerlinks']
-##        for key in playerlinks.keys():
-##            f1.writelines(key + '\t' + playerlinks[key] + '\n')
+    '''Case for box score data...'''
+    page = "http://scores.espn.go.com/nba/boxscore?gameId=320223025"
+    print('grabbing page and data..')
+
+    
+    data = processESPNpage(page, 'box')
+    #print(data['playerlinks'])
+    print('data grabbed, writing file...')
+    with open('/Users/sinn/Desktop/NBA_TempGame_box_details.txt', 'w') as f1:
+        for line in data['details']:
+            f1.writelines('\t'.join(line) + '\n')
+
+    with open('/Users/sinn/Desktop/NBA_TempGame_box_content.txt', 'w') as f1:
+        for line in data['content']:
+            f1.writelines('\t'.join(line) + '\n')
+
+    with open('/Users/sinn/Desktop/NBA_TempGame_box_playerref.txt', 'w') as f1:
+        playerlinks = data['playerlinks']
+        for key in playerlinks.keys():
+            f1.writelines(key + '\t' + playerlinks[key] + '\n')
     
     print('fine')
