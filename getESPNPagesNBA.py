@@ -19,9 +19,8 @@ import urllib2
 
 from BeautifulSoup import BeautifulSoup as Soup
 
-from parseESPNPages import processESPNpage
+import toStrucDocESPNPages
 import NBADB
-
 '''
 nba_root    = "http://scores.espn.go.com/nba/scoreboard?date=" + date
 nba_pbp_all = "http://scores.espn.go.com/nba/playbyplay?gameId=" + gameID + "&period=0"
@@ -33,7 +32,7 @@ nba_root        = "http://scores.espn.go.com/nba/scoreboard?date="
 nba_ext         = "http://scores.espn.go.com/nba/recap?gameId="
 nba_box         = "http://scores.espn.go.com/nba/boxscore?gameId="
 nba_pbp         = "http://scores.espn.go.com/nba/playbyplay?gameId="
-nba_shots       = "http://scores.espn.go.com/nba/shotchart?gameId="     # i wish i could grab this
+nba_shots       = "http://sports.espn.go.com/nba/gamepackage/data/shot?gameId="
 
 ncaa_root       = "http://scores.espn.go.com/ncb/scoreboard?date="
 
@@ -57,6 +56,7 @@ def runmain(gameids, argdict):
         pbp_store[gameid] = getpbp(gameid)
         box_store[gameid] = getbox(gameid)
         ext_store[gameid] = getext(gameid)
+        sht_store[gameid] = getsht(gameid)
     print "Pages retreived; storing data..."
     out_args = NBADB.NBADBHandle(pbp=pbp_store,
                                  box=box_store,
@@ -71,37 +71,52 @@ def getext(gameid):
     try:
         url = nba_ext + str(gameid)
         print url
-        ext = processESPNpage(url, 'extra')
+        ext = toStrucDocESPNPages.structureESPNPage(url)
         return ext
     except ValueError:
         # need some stuff to spit out error info...
         print('Failed to retreive recap for game ' + str(gameid))
-        return list()
+        return dict()
 
 def getpbp(gameid):
     '''
-    Given an ESPN game ID grabs the raw play-by-play feed page if mode==1;
-    if mode==2, processes the page with parseESPN.getESPNpbp module;
+    Given an ESPN game ID grabs play-by-play page, forms it into a
+    structured doc;
     '''
     try:
         url = nba_pbp + str(gameid) + "&period=0"
         print url
-        pbp = processESPNpage(url, 'pbp')
+        pbp = toStrucDocESPNPages.structureESPNPage(url)
         return pbp
     except ValueError:
         # need some stuff to spit out error info...
         print('Failed to retreive play-by-play for game ' + str(gameid))
-        return list()
+        return dict()
 
 def getbox(gameid):
     '''
-    Given an ESPN game ID grabs the raw bow score feed page if mode==1;
-    if mode==2, processes the page with parseESPN.getESPNbox module;
+    Given an ESPN game ID grabs the box score feed page, turns it into
+    a structured doc;
     '''
     try:
         url = nba_box + str(gameid)
         print url
-        box = processESPNpage(url, 'box')
+        box = toStrucDocESPNPages.structureESPNPage(url)
+        return box
+    except ValueError:
+        # need some stuff to spit out error info...
+        print('Failed to retreive box score for game ' + str(gameid))
+        return dict()
+
+def getsht(gameid):
+    '''
+    Given an ESPN game ID grabs the shot placement for the game; makes
+    structured doc;
+    '''
+    try:
+        url = nba_shots + str(gameid)
+        print url
+        box = toStrucDocESPNPages.structureESPNPage(url)
         return box
     except ValueError:
         # need some stuff to spit out error info...

@@ -17,7 +17,7 @@ CONTENT_DICT    = {'pbp':('class', 'mod-content'),
                    'box':('id', 'my-players-table')}
 EXTRA_LIST      = [('class','game-time-location')]
 
-def processESPNpage(url, ptype):
+def processESPNPage(url, ptype):
     '''ptype should be "pbp" or "box" at this point'''
     try:
         data    = getESPNData(url, ptype)
@@ -209,7 +209,6 @@ if __name__=="__main__":
     '''Case for box score data...'''
     page = "http://scores.espn.go.com/nba/boxscore?gameId=320223025"
     print('grabbing page and data..')
-
     
     data = processESPNpage(page, 'box')
     #print(data['playerlinks'])

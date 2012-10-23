@@ -48,9 +48,9 @@ def page2dictPBP(data):
     pageDict = dict()
     for i,line in enumerate(data):
         pageDict[i] = {head[0]:line[0],
-                       head[1]:line[1],
+                       head[1]:line[1] if len(line[1])>2 else '',
                        head[2]:line[2],
-                       head[3]:line[3]}
+                       head[3]:line[3] if len(line[3])>2 else ''}
     return pageDict
 
 def page2dictBOX(data):
