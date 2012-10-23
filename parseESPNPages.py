@@ -99,9 +99,11 @@ def getESPNbox(table):
         details.append([str(h.text.encode('utf8')) for h in line.findAll('th')])
         content.append([str(h.text.encode('utf8')) for h in line.findAll('td')])
     playerlink_dict = getESPNplayerlinks(summary)
+    refined_pl_dict = refineESPNplayerlinks(playerlink_dict)
     return {'details':details,
             'content':content,
-            'playerlinks':playerlink_dict}
+            'playerlinks':playerlink_dict,
+            'ref_pls':refined_pl_dict}
 
 def getESPNShotDict(shots):
     '''
@@ -133,6 +135,7 @@ def getESPNShotDict(shots):
                            'made' : u'0' if s['made']=='false' else u'1',
                            'pts' : u'2' if s['d'].find('jumper')>-1 else u'3',
                            'p' : s['p'],
+                           'pid' : s['pid'],
                            't' : s['t'],
                            'x' : s['x'],
                            'y' : s['y']}
@@ -155,12 +158,32 @@ def getESPNplayerlinks(summary):
     '''
     playerlink_dict = dict()
     for line in summary:
-	temp = line.findAll('a')
+	temp = line.findAll('a')    # returns a list of finds;
+	'Make sure soemthing found on the line, not []'
 	if temp:
-            temp    = temp[0]
-            if str(temp.get('href')):
-		playerlink_dict[str(temp.text)] = str(temp.get('href'))
+            temp = temp[0]          # sound be only 1 element
+            if str(temp.get('href')) != 'None':     # not team name...
+                playerlink_dict[str(temp.text)] = str(temp.get('href'))
     return playerlink_dict
+
+def refineESPNplayerlinks(playerlink_dict):
+    '''
+    Takes info from playerlink_dict and turns it into dict
+    for importing data into "
+    players_site" MySQL table;
+    '''
+    refined_pl_dict = list()
+    for key in playerlink_dict.keys():
+        temp = dict()
+        temp['first']   = ' '.join(key.split(' ')[:-1])
+        temp['last']    = key.split(' ')[-1]
+        temp['id']      = playerlink_dict[key].split('/')[-2]
+        temp['pbp_name'] = ' '.join(playerlink_dict[key].split('/')[-1].split('-'))
+        temp['web_page'] = playerlink_dict[key]
+        refined_pl_dict.append(temp.copy())
+    return refined_pl_dict
+        
+        
 
 # Grabs some Spurs - Nuggets game from spr 2012, gets pbp data, write to file
 if __name__=="__main__":
@@ -171,37 +194,37 @@ if __name__=="__main__":
     elif os.path.isdir('/Users/sinn/NBA-Data-Stuff'):
         defualt_path = '/home/immersinn/NBA-Data-Stuff'
 
-    '''Case for pbp data...'''
-    page = "http://espn.go.com/nba/playbyplay?gameId=320223025&period=0"
+##    '''Case for pbp data...'''
+##    page = "http://espn.go.com/nba/playbyplay?gameId=320223025&period=0"
+##    print('grabbing page and data..')
+##    
+##    data = processESPNpage(page, 'pbp')
+##    print('data grabbed, writing file...')
+##    with open(os.path.join(default_path, 'DataFiles/TestOut/NBA_TempGame_pbp.txt'),
+##              'w') as f1:
+##        f1.writelines('\t'.join(data['head']) + '\n')
+##        for line in data['content']:
+##            f1.writelines('\t'.join(line) + '\n')
+
+    '''Case for box score data...'''
+    page = "http://scores.espn.go.com/nba/boxscore?gameId=320223025"
     print('grabbing page and data..')
+
     
-    data = processESPNpage(page, 'pbp')
+    data = processESPNpage(page, 'box')
+    #print(data['playerlinks'])
     print('data grabbed, writing file...')
-    with open(os.path.join(default_path, 'DataFiles/TestOut/NBA_TempGame_pbp.txt'),
-              'w') as f1:
-        f1.writelines('\t'.join(data['head']) + '\n')
+    with open('/Users/sinn/Desktop/NBA_TempGame_box_details.txt', 'w') as f1:
+        for line in data['details']:
+            f1.writelines('\t'.join(line) + '\n')
+
+    with open('/Users/sinn/Desktop/NBA_TempGame_box_content.txt', 'w') as f1:
         for line in data['content']:
             f1.writelines('\t'.join(line) + '\n')
 
-##    '''Case for box score data...'''
-##    page = "http://scores.espn.go.com/nba/boxscore?gameId=320223025"
-##    print('grabbing page and data..')
-##
-##    
-##    data = processESPNpage(page, 'box')
-##    #print(data['playerlinks'])
-##    print('data grabbed, writing file...')
-##    with open('/Users/sinn/Desktop/NBA_TempGame_box_details.txt', 'w') as f1:
-##        for line in data['details']:
-##            f1.writelines('\t'.join(line) + '\n')
-##
-##    with open('/Users/sinn/Desktop/NBA_TempGame_box_content.txt', 'w') as f1:
-##        for line in data['content']:
-##            f1.writelines('\t'.join(line) + '\n')
-##
-##    with open('/Users/sinn/Desktop/NBA_TempGame_box_playerref.txt', 'w') as f1:
-##        playerlinks = data['playerlinks']
-##        for key in playerlinks.keys():
-##            f1.writelines(key + '\t' + playerlinks[key] + '\n')
+    with open('/Users/sinn/Desktop/NBA_TempGame_box_playerref.txt', 'w') as f1:
+        playerlinks = data['playerlinks']
+        for key in playerlinks.keys():
+            f1.writelines(key + '\t' + playerlinks[key] + '\n')
     
     print('fine')

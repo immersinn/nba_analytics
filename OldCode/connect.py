@@ -12,9 +12,9 @@ def handcon(db='', h='', p='', u=''):
     u = u if u else 'sinn'
     try:
         conn = ms.connect(db        = db,
-                          host      = h,
-                          user      = u,
-                          passwd    = p)
+                                 host      = h,
+                                 user      = u,
+                                 passwd    = p)
         print "Connected"
     except ms.Error, e:
         print 'Connection failed'

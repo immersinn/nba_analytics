@@ -20,8 +20,7 @@ import urllib2
 from BeautifulSoup import BeautifulSoup as Soup
 
 from parseESPNPages import processESPNpage
-from argshandle import getargs
-from picklingIsEasy import picklehandle
+import NBADB
 
 '''
 nba_root    = "http://scores.espn.go.com/nba/scoreboard?date=" + date
@@ -52,15 +51,16 @@ def runmain(gameids, argdict):
     box_store = dict()
     ext_store = dict()
     '''Grab data from pages'''
+    print "Grabbing data from pages..."
     for gameid in gameids:
         print('Grabbing game ' + str(gameid) + '...')
         pbp_store[gameid] = getpbp(gameid)
         box_store[gameid] = getbox(gameid)
         ext_store[gameid] = getext(gameid)
-    picklehandle({'pbp':pbp_store,
-                  'box':box_store,
-                  'ext':ext_store},
-                 argdict)
+    print "Pages retreived; storing data..."
+    out_args = NBADB.NBADBHandle(pbp=pbp_store,
+                                 box=box_store,
+                                 ext = ext_store)
     return 1
 
 def getext(gameid):
@@ -173,9 +173,6 @@ if __name__=='__main__':
     argdict['date']     = args[0]
     argdict['outname']  = args[1]
     argdict['path'] = default_path
-##    argdict = getargs(argslist=['file', 'date', 'outname', 'outform'])
-##    if not argdict.has_key('outform'): argdict['outform'] = 'processed'
-##    if not argdict.has_key('outname'): argdict['outname'] = "temp01_PBP.pkl"
     if argdict:
         if argdict.has_key('file'): 
             if os.path.isfile(argdict['file']):
