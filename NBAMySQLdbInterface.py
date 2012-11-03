@@ -55,22 +55,39 @@ def addInfo(pageType,cursor,data):
         print "Warning! non valid page type; not updating"
 
 '''
-pbp = {
+Update general game info, e.g., MDB id's for game data;
 '''
-def updatePBP(cursor, data):
+def updateGameInfo(cursor, data):
+    '''
+    Data should be from box['playerlinks']; dictionary-ize it;
+    Layout for players_site table:
+    +---------------+------------------+------+-----+---------+----------------+
+    | Field         | Type             | Null | Key | Default | Extra          |
+    +---------------+------------------+------+-----+---------+----------------+
+    | game_id       | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+    | espn_gid      | int(10) unsigned | NO   |     | NULL    |                |
+    | game_date     | date             | NO   |     | NULL    |
+    | pbp_mdb_id    | varchar(24)      | NO   |     | NULL    |                |
+    | box_mdb_id    | varchar(24)      | NO   |     | NULL    |                |
+    | ext_mdb_id    | varchar(24)      | NO   |     | NULL    |                |
+    | season        | varchar(7)      | NO   |     | NULL    |                |
+    +---------------+------------------+------+-----+---------+----------------+
 
-'''
-box = {
-'''
-def updateBox(cursor, data):
-
-    addPlayers2PS(cursor, data['ref_pls'])
-
-
-'''
-ext = {
-'''
-def updateExt(cursor, data):
+    '''
+    data_list = [(int(ga['id']),
+                  ga['date'],
+                  ga['pbp_id'],
+                  ga['box_id'],
+                  ga['ext_id'],
+                  ga['season']) for ga in data]
+    cursor.executemany(
+        """INSERT INTO game_mdb_ref (espn_gid,
+                                     game_date,
+                                     pbp_mdb_id,
+                                     box_mdb_id,
+                                     ext_mdb_id,
+                                     season)
+            VALUES(%s, %s, %s, %s, $s, $s)""", data_list) 
 
 
 '''
