@@ -1,4 +1,6 @@
 '''
+SOON TO CHANGE --> WILL REF INTERFACE CLASS OBJECTS FOR SQL, MDB
+
 Handles placing data from ESPN pages into MySQL and MongoDB;
 SQL for standard relational stuff (players in game xxx);
 Mongo for structured doc stuff (pbp, raw box score pages);
