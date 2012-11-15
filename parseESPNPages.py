@@ -33,7 +33,7 @@ def processESPNShotsPage(url):
     Handles grabbing the x,y coords from the ESPN shots page;
     returns a dict;
     '''
-    shotSoup = prepworkURL.makeSoup(prepworkURL.makePage(url), url)
+    shotSoup = makeSoup(makePage(url), url, parser='xml')
     shots = shotSoup.findAll('Shot')
     shotDict = getESPNShotDict(shots)
     return shotDict
@@ -50,8 +50,11 @@ def getESPNData(url, ptype):
         data    = getESPNbox(tables[0])
     elif ptype=='pbp':
         labels  = CONTENT_DICT[ptype]
-        tables  = soup.find_all('div', {labels[0]:labels[1]})
-        data    = getESPNpbp(tables[1])                     # check this plz
+        if 'Play-By-Play not available' in soup.text:   #nfid
+            data = {'head':'No PBP data for game', 'content':"!!!!!!"}
+        else: 
+            tables  = soup.find_all('div', {labels[0]:labels[1]})
+            data    = getESPNpbp(tables[1])     # check this plz
     elif ptype=='extra':
         if raw: text = getText(raw)
         else: text = ''

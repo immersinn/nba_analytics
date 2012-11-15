@@ -17,26 +17,32 @@ pageTypeD = {'boxscore':'box',
 
 
 def structureESPNPage(url):
-    ptype = re.search(r'//([a-z]+)/?',url)
-    gameID = re.search(r'/?gameId=([0-9]{9})', url)
-    try:
-        ptype = pageTypeD[ptype.groups(0)[0]]
-        gameID = gameID.groups(0)[0]
-    except AttributeError:
-        print "Unrecogonized URL; please provide a valid ESPN Page URL"
-        raise
+
+    gameID = re.search(r'\?gameId=([0-9]{9})', url)
+    gameID = gameID.groups(0)[0]
+#    ptype = re.search(r'/([a-z]+)\?',url)
+#    try:
+#       ptype = pageTypeD[ptype.groups(0)[0]]
+#        gameID = gameID.groups(0)[0]
+#    except AttributeError:
+#        print "Unrecogonized URL; please provide a valid ESPN Page URL"
+#        raise
     '''Found the necessary info in the url; grab info from pages'''
-    if ptype=='shot':
-        pageDict = parseESPNPages.processESPNShotsPage(url)
-    elif ptype=='playbyplay':
-        data = parseESPNPages.processESPNpage(url, 'pbp')
+    if 'playbyplay' in url:
+        data = parseESPNPages.processESPNPage(url, 'pbp')
         pageDict = page2dictPBP(data)
-    elif ptype=='boxscore':
-        data = parseESPNPages.processESPNpage(url, 'box')
-        pageDict = page2dictBOX(data)
+        ptype = 'pbp'
+    elif 'boxscore' in url:
+        data = parseESPNPages.processESPNPage(url, 'box')
+        pageDict = data
+        #pageDict = page2dictBOX(data)
+        ptype = 'box'
+    elif 'shot' in url:
+        pageDict = {'Shots':parseESPNPages.processESPNShotsPage(url)}
+        ptype = 'shot'
     '''Add Game ID to the page dictionary...'''
     pageDict['GameID'] = gameID
-    return pageDict, ptype
+    return pageDict
 
 
 def page2dictPBP(data):
@@ -46,11 +52,23 @@ def page2dictPBP(data):
     data['content']
     '''
     pageDict = dict()
-    for i,line in enumerate(data):
-        pageDict[i] = {head[0]:line[0],
-                       head[1]:line[1] if len(line[1])>2 else '',
-                       head[2]:line[2],
-                       head[3]:line[3] if len(line[3])>2 else ''}
+    head = data['head']
+    for i,line in enumerate(data['content']):
+        try:
+            pageDict[i] = {head[0]:line[0],
+                           head[1]:line[1] if len(line[1])>2 else '',
+                           head[2]:line[2],
+                           head[3]:line[3] if len(line[3])>2 else ''}
+        except:
+            if len(line)==2:
+                if 'timeout' in line[1].lower():
+                    pageDict[i] = {'Time':line[0],
+                                   'Timeout':line[1]}
+                elif 'end' in line[1].lower():
+                    pageDict[i] = {'Time':line[0],
+                                   'EndOf':line[1]}
+                else:
+                    pageDict[i] = {'Other': ';'.join(line)}
     return pageDict
 
 def page2dictBOX(data):
@@ -107,28 +125,6 @@ def BoxInfo(box, details, player_names, player_ids):
         boxdata[key] = extrasdetails[key]
     return boxdata
 
-def getUsedNames(player_ref):
-    '''
-    Get player names used in play-by-play data;
-    Box_Score_Name : Play_by_Play_Name
-    '''
-    player_names = {}
-    for entry in player_ref:
-        entry = entry.split('\t')
-        player_names[entry[0].replace('  ',' ')] =\
-                    ' '.join(entry[1].split('/')[-1].split('-'))
-    return player_names
-
-def getESPNIDs(player_ref):
-    '''
-    Play_by_Play_Name : ESPN_ID
-    '''
-    player_IDs = {}
-    for entry in player_ref:
-        entry = entry.split('\t')
-        player_IDs[' '.join(entry[1].split('/')[-1].split('-'))] =\
-                       int(entry[1].split('/')[-2])
-    return player_IDs
 
 def getTeamPlayers(box, start_index, bench_index, total_index, player_names):
     '''Determine all players for each team from the box score table'''

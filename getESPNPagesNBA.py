@@ -20,7 +20,7 @@ import urllib2
 from BeautifulSoup import BeautifulSoup as Soup
 
 import toStrucDocESPNPages
-import NBADB
+#import NBADB
 '''
 nba_root    = "http://scores.espn.go.com/nba/scoreboard?date=" + date
 nba_pbp_all = "http://scores.espn.go.com/nba/playbyplay?gameId=" + gameID + "&period=0"
@@ -45,23 +45,44 @@ null_value      = '&nbsp;'
 space_holder = u'\xc2\xa0'                  # curiousior and curiousior (sp?)
 max_args        = 2
 
-def runmain(gameids, argdict):
+def wrapper(Date):
+    """
+    Callable 'runme' for get pages using a date as input;
+    returns page data as dictionary of dictionaries (pbp, box, ext);
+    """
+    gameIDs = getidswebs(Date)
+    if gameIDs:
+        for ID in gameIDs:
+            print ID
+        return runmain(gameIDs, {}, out=True)
+    else:
+        print "No game ids retreived; returing empty dicts"
+        return {'pbp':{},'box':{},'ext':{}}
+
+def runmain(gameids, argdict, out=False):
     pbp_store = dict()
     box_store = dict()
-    ext_store = dict()
+    #ext_stire = dict()
+    sht_store = dict()
     '''Grab data from pages'''
     print "Grabbing data from pages..."
     for gameid in gameids:
         print('Grabbing game ' + str(gameid) + '...')
         pbp_store[gameid] = getpbp(gameid)
         box_store[gameid] = getbox(gameid)
-        ext_store[gameid] = getext(gameid)
+        #ext_store[gameid] = getext(gameid)
         sht_store[gameid] = getsht(gameid)
-    print "Pages retreived; storing data..."
-    out_args = NBADB.NBADBHandle(pbp=pbp_store,
-                                 box=box_store,
-                                 ext = ext_store)
-    return 1
+    if out:
+        print "Pages retreived; returning data..."
+        return {'pbp':pbp_store,
+                'box':box_store,
+                'sht':sht_store}
+    else:
+        print "Pages retreived; storing data..."
+        out_args = NBADB.NBADBHandle(pbp=pbp_store,
+                                     box=box_store,
+                                     ext=ext_store)
+        return 1
 
 def getext(gameid):
     '''
@@ -163,12 +184,18 @@ def getidswebs(date, cat='NBA'):
 def verifydate(date):
     '''Checks to make sure provided date is valid format, in past or now'''
     now = datetime.datetime.now()
+    now = int(str(now.year)+\
+               ('0' if now.month<10 else '') + \
+               str(now.month)+\
+               ('0' if now.day<10 else '') + \
+               str(now.day))
     if len(date) != 8:
         print 'WARNING: non-valid date or date in invalid format'
     try:
-        if int(date[:4])  <= now.year and\
-           int(date[4:6]) < now.month or\
-           (int(date[4:6]) == now.month and int(date[6:])  <= now.day):
+        if int(date) <= now:
+##        int(date[:4])  <= now.year and\
+##           int(date[4:6]) < now.month or\
+##           (int(date[4:6]) == now.month and int(date[6:])  <= now.day):
             return True
         else:
             print "WARNING: future date provided; this isn't a crystal ball!!"
