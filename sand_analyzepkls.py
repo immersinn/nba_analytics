@@ -12,6 +12,7 @@ import picklingIsEasy
 
 # link to general bball court info:
 # http://en.wikipedia.org/wiki/Basketball_court
+# http://www.bettingexpress.com/national_basketball_association/nba_rules/rule1_court_dimensions.shtml
 
 # set file names to use
 pbp_n = '/home/immersinn/Gits/NBA-Data-Stuff/pbp_20111215to20111221.pkl'
@@ -117,7 +118,16 @@ def densPlot(dataFrame, names, DDD=2):
 """
 Problem number 1:  where to misses occur more often??
 """
-
+# all shots
+shots = list()
+for val in sht.values():
+    for ent in val['Shots'].values():
+            shots.append({'x':int(ent['x']),
+                          'y':int(ent['y'])})
+shots = pandas.DataFrame(shots, columns = ['x','y'])
+shots['newx'] = [50-x if y > 47 else x for (x,y) in  zip(shots.x, shots.y)]
+shots['newy'] = [94-y if y > 47 else y for (x,y) in  zip(shots.x, shots.y)]
+shots = shots[shots['newy']>-2]
 # made shots, throw to DF
 made_shots = list()
 for val in sht.values():
@@ -148,6 +158,12 @@ made_nft_df = made_df[made_df['newy']>-2]
 miss_nft_df = miss_df[miss_df['newy']>-2]
 # check again...
 scatter(made_nft_df['newx'],made_nft_df['newy'])
+# simnple compare:
+made = made_nft_df[['newx','newy']]
+miss = miss_nft_df[['newx','newy']]
+pandas.scatter_matrix(shots, diagonal='kde')
+pandas.scatter_matrix(made, diagonal='kde')
+pandas.scatter_matrix(miss, diagonal='kde')
 # prep kdes
 made_rvs = np.array([[x,y] for (x,y) in zip(made_nft_df.newx,made_nft_df.newy)])
 miss_rvs = np.array([[x,y] for (x,y) in zip(miss_nft_df.newx,miss_nft_df.newy)])
