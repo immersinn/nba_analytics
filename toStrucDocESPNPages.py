@@ -52,8 +52,10 @@ def page2dictPBP(data):
     pageDict = dict()
     head = data['head']
     for i,line in enumerate(data['content']):
+        # mongodb only takes strings as keys (bit of a pain),
+        # so switching this over to str num keys, not ints (04/12/12)
         try:
-            pageDict[i] = {head[0]:line[0],
+            pageDict[str(i)] = {head[0]:line[0],
                            head[1]:line[1] if len(line[1])>2 else '',
                            head[2]:line[2],
                            head[3]:line[3] if len(line[3])>2 else ''}
