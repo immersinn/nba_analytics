@@ -5,10 +5,13 @@ NBA data thus far); grabs page @ url and gets pbp / box / extra (all?);
 should be called by a function that is iterating over games for a particular
 day, and push data to code that transmits it to a db
 '''
-import sys, os, re
+import sys, os
+import re
+
 from bs4 import BeautifulSoup as BS
 from nltk import clean_html
 
+sys.path.append('/home/immersinn/Gits/Helper-Code/Python27')
 from prepworkURL import makePage
 from prepworkURL import makeSoup
 
@@ -192,22 +195,22 @@ def refineESPNplayerlinks(playerlink_dict):
 if __name__=="__main__":
 
     '''Set the correct directory'''
-    if os.path.isdir('/home/immersinn/NBA-Data-Stuff'):     #dell
+    if os.path.isdir('/home/immersinn/NBA-Data-Stuff'):     #delldesk
         default_path = '/home/immersinn/NBA-Data-Stuff'
     elif os.path.isdir('/Users/sinn/NBA-Data-Stuff'):
         defualt_path = '/home/immersinn/NBA-Data-Stuff'
 
-##    '''Case for pbp data...'''
-##    page = "http://espn.go.com/nba/playbyplay?gameId=320223025&period=0"
-##    print('grabbing page and data..')
-##    
-##    data = processESPNpage(page, 'pbp')
-##    print('data grabbed, writing file...')
-##    with open(os.path.join(default_path, 'DataFiles/TestOut/NBA_TempGame_pbp.txt'),
-##              'w') as f1:
-##        f1.writelines('\t'.join(data['head']) + '\n')
-##        for line in data['content']:
-##            f1.writelines('\t'.join(line) + '\n')
+    '''Case for pbp data...'''
+    page = "http://espn.go.com/nba/playbyplay?gameId=320223025&period=0"
+    print('grabbing page and data..')
+    
+    data = processESPNpage(page, 'pbp')
+    print('data grabbed, writing file...')
+    with open(os.path.join(default_path, 'DataFiles/TestOut/NBA_TempGame_pbp.txt'),
+              'w') as f1:
+        f1.writelines('\t'.join(data['head']) + '\n')
+        for line in data['content']:
+            f1.writelines('\t'.join(line) + '\n')
 
     '''Case for box score data...'''
     page = "http://scores.espn.go.com/nba/boxscore?gameId=320223025"
@@ -215,6 +218,7 @@ if __name__=="__main__":
     
     data = processESPNpage(page, 'box')
     #print(data['playerlinks'])
+    
     print('data grabbed, writing file...')
     with open('/Users/sinn/Desktop/NBA_TempGame_box_details.txt', 'w') as f1:
         for line in data['details']:

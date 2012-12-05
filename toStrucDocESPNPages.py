@@ -1,6 +1,6 @@
 '''
 Convert the pages pulled from ESPN by parseESPNPages into 'structured docs'
-preps (i.e., dictionaries); failry straightforward
+preps (i.e., dictionaries); fairly straightforward
 
 http://scores.espn.go.com/nba/boxscore?gameId=320223025
 http://espn.go.com/nba/playbyplay?gameId=320223025&period=0
@@ -11,26 +11,19 @@ import sys, os
 import re
 import parseESPNPages
 
-pageTypeD = {'boxscore':'box',
-             'playbyplay':'pbp',
-             'shot':'shot'}
-
 
 def structureESPNPage(url):
-
+    """
+    Takes an input url, determine which type of page it is (or isn't),
+    calls parseESPNPages to get the data from the page, and converts
+    data intoa  dictionary for returning to the call.
+    """
     gameID = re.search(r'\?gameId=([0-9]{9})', url)
     gameID = gameID.groups(0)[0]
-#    ptype = re.search(r'/([a-z]+)\?',url)
-#    try:
-#       ptype = pageTypeD[ptype.groups(0)[0]]
-#        gameID = gameID.groups(0)[0]
-#    except AttributeError:
-#        print "Unrecogonized URL; please provide a valid ESPN Page URL"
-#        raise
-    '''Found the necessary info in the url; grab info from pages'''
+    '''Find the necessary info in the url; grab info from pages'''
     if 'playbyplay' in url:
         data = parseESPNPages.processESPNPage(url, 'pbp')
-        pageDict = page2dictPBP(data)
+        pageDict = {'Plays':page2dictPBP(data)}
         ptype = 'pbp'
     elif 'boxscore' in url:
         data = parseESPNPages.processESPNPage(url, 'box')
@@ -40,14 +33,19 @@ def structureESPNPage(url):
     elif 'shot' in url:
         pageDict = {'Shots':parseESPNPages.processESPNShotsPage(url)}
         ptype = 'shot'
+    else:
+        print "Unrecogonized URL; please provide a valid ESPN Page URL"
     '''Add Game ID to the page dictionary...'''
     pageDict['GameID'] = gameID
     return pageDict
 
-
 def page2dictPBP(data):
     '''
-    Play by Play page data:
+    Takes play-by-play data from parseESPNPages and converts to
+    a list of dictionary objects. Some ESPN pages have been known
+    to have plays out of order, etc., hence the list structure.
+    
+    Play by Play page data structure from parseESPNPages:
     data['head']
     data['content']
     '''
@@ -73,7 +71,17 @@ def page2dictPBP(data):
 
 def page2dictBOX(data):
     '''
-    Boxscore page data:
+    Box score output from parseESPNPages to (loose) dictionary.  Not
+    too much processing here, as the only real reasons to vist the box
+    score page are to
+    i) Get the player names used in the pbp data
+    ii) Get the urls for each player
+    iii) Obtain data for confirming any pbp parsing in the future (i.e,
+    does the calculated rbs from player xxxx match the box score?)
+    iv) Obtain the list of starters for the game, so that the
+    "Who is on the court?" code can be verified.
+    
+    Boxscore page data from parseESPNPages:
     data['details']
     data['content']
     data['playerlinks']
@@ -105,6 +113,10 @@ def page2dictBOX(data):
 
 
 def BoxInfo(box, details, player_names, player_ids):
+    '''
+    Helper function for 'page2dictBOX'; visits each component,
+    does useful stuff for organizing, etc.
+    '''
     boxdata = dict()
     '''Index of each important break in the data'''
     start_index = [i for i in range(len(details)) if details[i].find('STARTERS')>-1]
@@ -124,7 +136,6 @@ def BoxInfo(box, details, player_names, player_ids):
     for key in extrasdetails.keys():
         boxdata[key] = extrasdetails[key]
     return boxdata
-
 
 def getTeamPlayers(box, start_index, bench_index, total_index, player_names):
     '''Determine all players for each team from the box score table'''

@@ -20,7 +20,6 @@ import urllib2
 from BeautifulSoup import BeautifulSoup as Soup
 
 import toStrucDocESPNPages
-#import NBADB
 '''
 nba_root    = "http://scores.espn.go.com/nba/scoreboard?date=" + date
 nba_pbp_all = "http://scores.espn.go.com/nba/playbyplay?gameId=" + gameID + "&period=0"
@@ -180,9 +179,10 @@ def getidswebs(date, cat='NBA'):
         except urllib2.URLError:
             print 'Failed to fetch ' + root_dict[cat]+date
             
-'''Just makes sure date isn't in future'''
 def verifydate(date):
-    '''Checks to make sure provided date is valid format, in past or now'''
+    '''
+    Checks to make sure provided date is valid format, in past or now
+    '''
     now = datetime.datetime.now()
     now = int(str(now.year)+\
                ('0' if now.month<10 else '') + \
@@ -193,15 +193,12 @@ def verifydate(date):
         print 'WARNING: non-valid date or date in invalid format'
     try:
         if int(date) <= now:
-##        int(date[:4])  <= now.year and\
-##           int(date[4:6]) < now.month or\
-##           (int(date[4:6]) == now.month and int(date[6:])  <= now.day):
             return True
         else:
             print "WARNING: future date provided; this isn't a crystal ball!!"
             return False
     except ValueError:
-        print 'non-valid date or date in invalid format'
+        print('non-valid date or date in invalid format: %d' % date)
         
         
 '''For running from terminal;'''

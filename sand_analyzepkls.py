@@ -6,8 +6,7 @@ import scipy.stats as stats
 # for plotting 3d:
 from mpl_toolkits.mplot3d import Axes3D
 
-sys.path.append('/home/immersinn/Gits/NBA-Data-Stuff')
-
+sys.path.append('/home/immersinn/Gits/Helper-Code/Python27')
 import picklingIsEasy
 
 # link to general bball court info:
