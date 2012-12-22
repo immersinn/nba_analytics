@@ -120,7 +120,7 @@ def getESPNShotDict(shots):
     p       --> player shooting (same as pbp name)
     pid     --> player ID (super usefull)
     qtr     --> quarter (what does OT look like??)
-    t       --> ?? values: a, h,
+    t       --> values: a(way), h(ome)
     x       --> x-cord where shot was taken from
     y       --> y-cord where shot was taken from
 
