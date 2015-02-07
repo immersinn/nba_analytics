@@ -1,6 +1,10 @@
 + review code, make sure ESPN scrape still works ok
+	> seems to work fine, except for a few module references, etc
 + figure out where you were / what needs to be done
+	> ummm…better idea: reorganize code, yo; seriously it looks like shit, ha
+
 + get rid of your stupid sand naming conventions, gah
+	> ok nevermind, that stuff looks like total shit
 + don't store data files in Git; use DBs, yo!
 + migrate needed files over to new git with better name
 + will require developing new SQL stuff with new python package

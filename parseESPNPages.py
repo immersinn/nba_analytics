@@ -11,9 +11,7 @@ import re
 from bs4 import BeautifulSoup as BS
 from nltk import clean_html
 
-sys.path.append('/home/immersinn/Gits/Helper-Code/Python27')
-from prepworkURL import makePage
-from prepworkURL import makeSoup
+from webpage_parse.soupypages import soupFromUrl
 
 null_value      = '&nbsp;'
 CONTENT_DICT    = {'pbp':('class', 'mod-content'),
@@ -36,7 +34,7 @@ def processESPNShotsPage(url):
     Handles grabbing the x,y coords from the ESPN shots page;
     returns a dict;
     '''
-    shotSoup = makeSoup(makePage(url), url, parser='xml')
+    shotSoup = soupFromUrl(url, parser='xml')['soup']
     shots = shotSoup.findAll('Shot')
     shotDict = getESPNShotDict(shots)
     return shotDict
@@ -45,8 +43,7 @@ def getESPNData(url, ptype):
     '''
     Handles which data is being called for; 
     '''
-    raw     = makePage(url)
-    soup    = makeSoup(raw, url)
+    soup    = soupFromUrl(url, hdr=True)['soup']
     if ptype=='box':
         labels  = CONTENT_DICT[ptype]
         tables  = soup.find_all('div', {labels[0]:labels[1]})
