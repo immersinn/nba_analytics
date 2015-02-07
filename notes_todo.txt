@@ -1,0 +1,9 @@
++ review code, make sure ESPN scrape still works ok
++ figure out where you were / what needs to be done
++ get rid of your stupid sand naming conventions, gah
++ don't store data files in Git; use DBs, yo!
++ migrate needed files over to new git with better name
++ will require developing new SQL stuff with new python package
+
+> scraping and storing and retrieving modules are one section
+> analytics is another section that isn't necessairly on GiHub, and spans both python and R most likely..
