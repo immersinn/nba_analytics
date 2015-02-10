@@ -5,29 +5,89 @@ NBA data thus far); grabs page @ url and gets pbp / box / extra (all?);
 should be called by a function that is iterating over games for a particular
 day, and push data to code that transmits it to a db
 '''
+import sys, os
 import re
 
 from bs4 import BeautifulSoup as BS
 from nltk import clean_html
 
+from webpage_parse.soupypages import soupFromUrl
+
 null_value      = '&nbsp;'
+CONTENT_DICT    = {'pbp':('class', 'mod-content'),
+                   'box':('id', 'my-players-table')}
+EXTRA_LIST      = [('class','game-time-location')]
 
+def processESPNPage(url, ptype):
+    '''ptype should be "pbp" or "box" at this point'''
+    try:
+        data    = getESPNData(url, ptype)
+        if data:
+            return data
+        else:
+            print("No %s content found for %s" % (ptype, url))
+    except KeyError:
+        print("Invalid ptype %s provided" % (ptype))
 
-def getEspnExt(soup, attrs):
-    """
-    Really just the recaps page, but also will grab extra info here as well
-    """
-    if raw:
-        text = getText(raw)
-    else:
-        text = ''
+def processESPNShotsPage(url):
+    '''
+    Handles grabbing the x,y coords from the ESPN shots page;
+    returns a dict;
+    '''
+    shotSoup = soupFromUrl(url, parser='xml')['soup']
+    shots = shotSoup.findAll('Shot')
+    shotDict = getESPNShotDict(shots)
+    return shotDict
+
+def getESPNData(url, ptype):
+    '''
+    Handles which data is being called for; 
+    '''
+    soup    = soupFromUrl(url, hdr=True)['soup']
+    if ptype=='box':
+        labels  = CONTENT_DICT[ptype]
+        tables  = soup.find_all('div', {labels[0]:labels[1]})
+        data    = getESPNbox(tables[0])
+    elif ptype=='pbp':
+        labels  = CONTENT_DICT[ptype]
+        if 'Play-By-Play not available' in soup.text:   #nfid
+            data = {'head':'No PBP data for game', 'content':"!!!!!!"}
+        else: 
+            tables  = soup.find_all('div', {labels[0]:labels[1]})
+            data    = getESPNpbp(tables[1])     # check this plz
+    elif ptype=='extra':
+        if raw:
+            text = getText(raw)
+        else:
+            text = ''
+        data    = getESPNext(soup, EXTRA_LIST)
+        data['text'] = text
+    return data
+
+def getESPNext(soup, attrs):
+    '''Really just the recaps page, but also will grab extra info here as well'''
     data = dict()
     for (attr,name) in attrs:
         data[attr] = soup.find_all('div', {attr:name})
     return data
 
+def getESPNpbp(table):
+    '''
+    url is a play-by-play url obtained from score-summary ESPN page;
+    use BeautifulSoup to parse apart data_in; all relevant data found
+    in 'table' HTML structures, hence we grab those;
+    '''
+        
+    pbp         = table.findAll('tr')
+    '''Use BS to get the headers (e.g., home and away team for game)'''
+    header      = [str(h.text) for h in pbp[1].findAll('th')]
+    content     = []
+    for line in pbp[2:]:
+        temp    = line.findAll('td')
+        content.append([str(e.text.encode('utf8')) for e in temp])
+    return {'head':header, 'content':content}
 
-def getEspnBox(table):
+def getESPNbox(table):
     '''
     url is a box score url obtained from score-summary ESPN page;
     use BeautifulSoup to parse apart data_in; all relevant data found
@@ -50,31 +110,7 @@ def getEspnBox(table):
             'playerlinks':playerlink_dict,
             'ref_pls':refined_pl_dict}
 
-
-def getEspnPbp(table):
-    '''
-    url is a play-by-play url obtained from score-summary ESPN page;
-    use BeautifulSoup to parse apart data_in; all relevant data found
-    in 'table' HTML structures, hence we grab those;
-    '''
-        
-    pbp         = table.findAll('tr')
-    '''Use BS to get the headers (e.g., home and away team for game)'''
-    header      = [str(h.text) for h in pbp[1].findAll('th')]
-    content     = []
-    for line in pbp[2:]:
-        temp    = line.findAll('td')
-        content.append([str(e.text.encode('utf8')) for e in temp])
-    return {'head':header, 'content':content}
-
-
-def getEspnShots(soup):
-    shots = self.soup.findAll('Shot')
-    shot_dict = getEspnShotDict(shots)
-    return shot_dict
-
-
-def getEspnShotDict(shots):
+def getESPNShotDict(shots):
     '''
     Components of the shot:
     d       --> pbp-esq discription (Made 19ft jumper 11:44 in 1st Qtr."
@@ -110,7 +146,6 @@ def getEspnShotDict(shots):
                            'y' : s['y']}
     return ShotDict
 
-
 def getText(raw):
     '''Gets same summary text from recap page'''
     text_start = "<!-- begin recap text -->"    # these are super handy
@@ -119,7 +154,6 @@ def getText(raw):
                raw.find(text_stops)]
     text = clean_html(text)
     return text
-
 
 def getESPNplayerlinks(summary):
     '''
@@ -136,7 +170,6 @@ def getESPNplayerlinks(summary):
             if str(temp.get('href')) != 'None':     # not team name...
                 playerlink_dict[str(temp.text)] = str(temp.get('href'))
     return playerlink_dict
-
 
 def refineESPNplayerlinks(playerlink_dict):
     '''

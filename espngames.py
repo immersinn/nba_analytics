@@ -51,7 +51,7 @@ class NBAGame():
         self.verbose = verbose
 
 
-    def retrieveData(self):
+    def retrieveGameData(self):
 ##        self.retrieveRecap()
         self.retrievePBP()
         self.retrieveBoxScore()
@@ -67,7 +67,7 @@ class NBAGame():
         try:
             url = nba_ext + str(self.gameId)
             if self.verbose: print(url)
-            ext = toStrucDocESPNPages.structureESPNPage(url)
+            ext = retrieveEspnNbaData.dataFromUrl(url, 'ext')
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive recap for game ' + str(gameid))
@@ -84,7 +84,7 @@ class NBAGame():
         try:
             url = nba_pbp + str(self.gameId) + "&period=0"
             if self.verbose: print(url)
-            pbp = toStrucDocESPNPages.structureESPNPage(url)
+            pbp = retrieveEspnNbaData.dataFromUrl(url, 'pbp')
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive play-by-play for game ' + str(gameid))
@@ -101,7 +101,7 @@ class NBAGame():
         try:
             url = nba_box + str(self.gameId)
             if self.verbose: print(url)
-            box = toStrucDocESPNPages.structureESPNPage(url)
+            box = retrieveEspnNbaData.dataFromUrl(url, 'box')
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive box score for game ' + str(gameid))
@@ -117,7 +117,7 @@ class NBAGame():
         try:
             url = nba_shots + str(self.gameId)
             if self.verbose: print(url)
-            shots = toStrucDocESPNPages.structureESPNPage(url)
+            shots = retrieveEspnNbaData.dataFromUrl(url, 'shots')
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive shot locations for game ' + str(gameid))
@@ -134,7 +134,7 @@ if __name__=='__main__':
     for gameId in gameIds[:3]:
         print("Retrieving data for game id %s" % gameId)
         game = NBAGame(gameId)
-        game.retrieveData()
+        game.retrieveGameData()
         games.append(game)
         print("Finished retrieving data for game.")
     print "Process complete."
