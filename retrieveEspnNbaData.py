@@ -31,7 +31,7 @@ class espnNbaPage():
         
     def makeSoup(self):
         if self.ptype == 'shots':
-            self.soup = soupFromUrl(url, parser='xml')['soup']
+            self.soup = soupFromUrl(self.url, parser='xml')['soup']
         else:
             self.soup = soupFromUrl(self.url, hdr=True)['soup']
 
@@ -48,31 +48,29 @@ class espnNbaPage():
 
 
     def processExt(self):
-        data = getEspnExt(self.soup, EXTRA_LIST)
-        self.data = data
+##        data = espnRecapFromSoup(self.soup, EXTRA_LIST)
+##        self.data = data
+        self.data = self.soup
         
 
     def processBox(self):
-        labels  = CONTENT_DICT[ptype]
-        tables  = self.soup.find_all('div',
-                                     {labels[0]:labels[1]})
-        data = getEspnBox(tables[0])
-        self.data = data
+##        data = espnBoxFromSoup(self.soup, CONTENT_DICT[self.ptype])
+##        self.data = data
+        self.data = self.soup
         
 
     def processPbp(self):
-        labels  = CONTENT_DICT[ptype]
-        if 'Play-By-Play not available' in self.soup.text:
-            data = {'head':'No PBP data for game',
-                    'content':''}
-        else: 
-            tables = self.soup.find_all('div',
-                                        {labels[0]:labels[1]})
-            data = getEspnPbp(tables[1])     # check this plz
-        self.data = data
+##        if 'Play-By-Play not available' in self.soup.text:
+##            data = {'head':'No PBP data for game',
+##                    'content':''}
+##        else: 
+##            data = espnPbpFromSoup(self.soup, CONTENT_DICT[self.ptype])
+##        self.data = data
+        self.data = self.soup
 
 
     def processShots(self):
-        data = getEspnShots(self.soup)
-        self.data = data
+##        data = espnShotsFromSoup(self.soup)
+##        self.data = data
+        self.data = self.soup
 

@@ -15,7 +15,7 @@ ESPN game ids from the scores summary page for that date;
 
 import sys
 
-import toStrucDocESPNPages
+import retrieveEspnNbaData
 
 
 '''
@@ -46,7 +46,7 @@ max_args        = 2
 class NBAGame():
 
 
-    def __init__(self, gameId,verbose=False):
+    def __init__(self, gameId, verbose=False):
         self.gameId = gameId
         self.verbose = verbose
 

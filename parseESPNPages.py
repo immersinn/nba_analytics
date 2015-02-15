@@ -13,7 +13,12 @@ from nltk import clean_html
 null_value      = '&nbsp;'
 
 
-def getEspnExt(soup, attrs):
+#////////////////////////////////////////////////////////////
+#{ Set and Get content
+#////////////////////////////////////////////////////////////
+
+
+def espnRecapFromSoup(soup, attrs):
     """
     Really just the recaps page, but also will grab extra info here as well
     """
@@ -27,12 +32,29 @@ def getEspnExt(soup, attrs):
     return data
 
 
-def getEspnBox(table):
-    '''
+def getText(raw):
+    '''Gets same summary text from recap page'''
+    text_start = "<!-- begin recap text -->"    # these are super handy
+    text_stops = "<!-- end recap text -->"
+    text = raw[raw.find(text_start)+len(text_start):\
+               raw.find(text_stops)]
+    text = clean_html(text)
+    return text
+
+
+#////////////////////////////////////////////////////////////
+#{ process the box score nba page
+#////////////////////////////////////////////////////////////
+
+
+def espnBoxFromSoup(soup, labels):
+    """
     url is a box score url obtained from score-summary ESPN page;
     use BeautifulSoup to parse apart data_in; all relevant data found
     in 'table' HTML structures, hence we grab those;
-    '''
+    """
+    tables  = soup.find_all('div',
+                            {labels[0]:labels[1]})
     summary     = table.findAll('tr')
     details     = []
     content     = []
@@ -43,39 +65,112 @@ def getEspnBox(table):
         '''
         details.append([str(h.text.encode('utf8')) for h in line.findAll('th')])
         content.append([str(h.text.encode('utf8')) for h in line.findAll('td')])
-    playerlink_dict = getESPNplayerlinks(summary)
-    refined_pl_dict = refineESPNplayerlinks(playerlink_dict)
+    playerlink_dict = espnPlayerlinksFromBox(summary)
+    # this output is changing; check to make sure it works properly..
     return {'details':details,
             'content':content,
             'playerlinks':playerlink_dict,
-            'ref_pls':refined_pl_dict}
+            }
 
 
-def getEspnPbp(table):
+def espnPlayerlinksFromBox(summary):
+    """
+    Gets the ESPN page urls for players in the game from the box score page;
+    keys are the full names of players used in box score, and values are
+    the urls;
+    """
+    playerlink_dict = dict()
+    for line in summary:
+        try:
+            temp = line.findAll('a')[0]
+            if str(temp.get('href')) != 'None':     # not team name...
+                playerlink_dict[str(temp.text)] =\
+                                                refineEspnPlayerlink(str(temp.text),
+                                                                     str(temp.get('href')))
+    return playerlink_dict
+
+
+def refineEspnPlayerlink(key, value):
+    """
+    Takes info from playerlink_dict and turns it into dict
+    for importing data into "
+    players_site" MySQL table;
+    """
+    temp = dict()
+    temp['first']   = ' '.join(key.split(' ')[:-1])
+    temp['last']    = key.split(' ')[-1]
+    temp['id']      = value.split('/')[-2]
+    temp['pbp_name'] = ' '.join(value.split('/')[-1].split('-'))
+    temp['web_page'] = value
+    return temp  
+
+
+#////////////////////////////////////////////////////////////
+#{ process the play-by-play nba page
+#////////////////////////////////////////////////////////////
+
+
+def espnPbpFromSoup(soup, labels):
     '''
     url is a play-by-play url obtained from score-summary ESPN page;
     use BeautifulSoup to parse apart data_in; all relevant data found
     in 'table' HTML structures, hence we grab those;
     '''
-        
-    pbp         = table.findAll('tr')
+    tables = self.soup.find_all('div',
+                                        {labels[0]:labels[1]})
+    table = tables[1]
+    pbp = table.findAll('tr')
     '''Use BS to get the headers (e.g., home and away team for game)'''
     header      = [str(h.text) for h in pbp[1].findAll('th')]
     content     = []
     for line in pbp[2:]:
-        temp    = line.findAll('td')
-        content.append([str(e.text.encode('utf8')) for e in temp])
-    return {'head':header, 'content':content}
+        line    = line.findAll('td')
+        line = [str(e.text.encode('utf8')) for e in temp]
+        content.append(structurePbpContent(header, line))
+    content = sortPbpContent(content)
+    return content
 
 
-def getEspnShots(soup):
+def structurePbpContent(head, line):
+    """
+    For a line in the play-by-play data, structure the raw info
+    content into a dictionary.
+    """
+    try:
+        line = {head[0]:line[0],
+                head[1]:line[1] if len(line[1])>2 else '',
+                head[2]:line[2],
+                head[3]:line[3] if len(line[3])>2 else ''}
+    except IndexError:
+        if len(line)==2:
+            if 'timeout' in line[1].lower():
+                line = {'Time':line[0],
+                        'Timeout':line[1]}
+            elif 'end' in line[1].lower():
+                line = {'Time':line[0],
+                        'EndOf':line[1]}
+            else:
+                line = {'Other': ';'.join(line)}
+    return line
+
+
+def sortPbpContent(content):
+    return content
+    
+
+#////////////////////////////////////////////////////////////
+#{ process the game shots information
+#////////////////////////////////////////////////////////////
+
+
+def espnShotsFromSoup(soup):
     shots = self.soup.findAll('Shot')
-    shot_dict = getEspnShotDict(shots)
+    shot_dict = espnShotDictFromRaw(shots)
     return shot_dict
 
 
-def getEspnShotDict(shots):
-    '''
+def espnShotDictFromRaw(shots):
+    """
     Components of the shot:
     d       --> pbp-esq discription (Made 19ft jumper 11:44 in 1st Qtr."
     id      --> the shot id (gameID+xxxxx)
@@ -93,9 +188,8 @@ def getEspnShotDict(shots):
     the X axis runs from left to right and the Y axis runs from
     bottom to top. The center of the hoop is located at (25, 5.25).
     x=25 y=-2 and x=25 y=96 are free-throws (8ft jumpers)
-    '''
+    """
 
-    '''Transform into a dictionary; worry about matching up to pbp later...'''
     ShotDict = {}
     for s in shots:
         ShotDict[s['id']] = \
@@ -109,52 +203,6 @@ def getEspnShotDict(shots):
                            'x' : s['x'],
                            'y' : s['y']}
     return ShotDict
-
-
-def getText(raw):
-    '''Gets same summary text from recap page'''
-    text_start = "<!-- begin recap text -->"    # these are super handy
-    text_stops = "<!-- end recap text -->"
-    text = raw[raw.find(text_start)+len(text_start):\
-               raw.find(text_stops)]
-    text = clean_html(text)
-    return text
-
-
-def getESPNplayerlinks(summary):
-    '''
-    Gets the ESPN page urls for players in the game from the box score page;
-    keys are the full names of players used in box score, and values are
-    the urls;
-    '''
-    playerlink_dict = dict()
-    for line in summary:
-	temp = line.findAll('a')    # returns a list of finds;
-	'Make sure soemthing found on the line, not []'
-	if temp:
-            temp = temp[0]          # sound be only 1 element
-            if str(temp.get('href')) != 'None':     # not team name...
-                playerlink_dict[str(temp.text)] = str(temp.get('href'))
-    return playerlink_dict
-
-
-def refineESPNplayerlinks(playerlink_dict):
-    '''
-    Takes info from playerlink_dict and turns it into dict
-    for importing data into "
-    players_site" MySQL table;
-    '''
-    refined_pl_dict = list()
-    for key in playerlink_dict.keys():
-        temp = dict()
-        temp['first']   = ' '.join(key.split(' ')[:-1])
-        temp['last']    = key.split(' ')[-1]
-        temp['id']      = playerlink_dict[key].split('/')[-2]
-        temp['pbp_name'] = ' '.join(playerlink_dict[key].split('/')[-1].split('-'))
-        temp['web_page'] = playerlink_dict[key]
-        refined_pl_dict.append(temp.copy())
-    return refined_pl_dict
-        
         
 
 # Grabs some Spurs - Nuggets game from spr 2012, gets pbp data, write to file

@@ -1,77 +1,73 @@
-'''
-Convert the pages pulled from ESPN by parseESPNPages into 'structured docs'
-preps (i.e., dictionaries); fairly straightforward
-
-http://scores.espn.go.com/nba/boxscore?gameId=320223025
-http://espn.go.com/nba/playbyplay?gameId=320223025&period=0
-http://sports.espn.go.com/nba/gamepackage/data/shot?gameId=320223014
-'''
-
-import sys, os
-import re
-import parseESPNPages
 
 
-def structureESPNPage(url):
+def espnBoxFromSoup(soup, labels):
     """
-    Takes an input url, determine which type of page it is (or isn't),
-    calls parseESPNPages to get the data from the page, and converts
-    data intoa  dictionary for returning to the call.
-    """
-    gameID = re.search(r'\?gameId=([0-9]{9})', url)
-    gameID = gameID.groups(0)[0]
-    '''Find the necessary info in the url; grab info from pages'''
-    if 'playbyplay' in url:
-        data = parseESPNPages.processESPNPage(url, 'pbp')
-        pageDict = {'Plays':page2dictPBP(data)}
-        ptype = 'pbp'
-    elif 'boxscore' in url:
-        data = parseESPNPages.processESPNPage(url, 'box')
-        pageDict = data
-        #pageDict = page2dictBOX(data)
-        ptype = 'box'
-    elif 'shot' in url:
-        pageDict = {'Shots':parseESPNPages.processESPNShotsPage(url)}
-        ptype = 'shot'
-    else:
-        print "Unrecogonized URL; please provide a valid ESPN Page URL"
-    '''Add Game ID to the page dictionary...'''
-    pageDict['GameID'] = gameID
-    return pageDict
+    url is a box score url obtained from score-summary ESPN page;
+    use BeautifulSoup to parse apart data_in; all relevant data found
+    in 'table' HTML structures, hence we grab those;
 
-def page2dictPBP(data):
-    '''
-    Takes play-by-play data from parseESPNPages and converts to
-    a list of dictionary objects. Some ESPN pages have been known
-    to have plays out of order, etc., hence the list structure.
-    
-    Play by Play page data structure from parseESPNPages:
-    data['head']
-    data['content']
-    '''
-    pageDict = dict()
-    head = data['head']
-    for i,line in enumerate(data['content']):
-        # mongodb only takes strings as keys (bit of a pain),
-        # so switching this over to str num keys, not ints (04/12/12)
+        "details" are headers, teams stuff;
+        "content" is actual player data;
+
+    """
+    sumary = espnSummaryFromBox(soup)
+    player_info = espnPlayerInfoFromBox(summary)
+    game_info = espnGameInfoFromBox(summary, player_info)
+    return player_info, game_info
+
+
+def espnSummaryFromBox(soup):
+    """Extract important table from Box Soup"""
+    tables  = soup.find_all('div', {labels[0]:labels[1]})
+    summary = tables[0].findAll('tr')
+    return summary
+
+
+def espnPlayerInfoFromBox(summary):
+    """
+    Gets the ESPN page urls for players in the game from the box score page;
+    keys are the full names of players used in box score, and values are
+    the urls;
+
+    does there need to be a "try" here?
+    """
+    playerlink_dict = dict()
+    for line in summary:
         try:
-            pageDict[str(i)] = {head[0]:line[0],
-                           head[1]:line[1] if len(line[1])>2 else '',
-                           head[2]:line[2],
-                           head[3]:line[3] if len(line[3])>2 else ''}
-        except:
-            if len(line)==2:
-                if 'timeout' in line[1].lower():
-                    pageDict[i] = {'Time':line[0],
-                                   'Timeout':line[1]}
-                elif 'end' in line[1].lower():
-                    pageDict[i] = {'Time':line[0],
-                                   'EndOf':line[1]}
-                else:
-                    pageDict[i] = {'Other': ';'.join(line)}
-    return pageDict
+            temp = line.findAll('a')[0]
+            if str(temp.get('href')) != 'None':     # not team name...
+                playerlink_dict[str(temp.text)] =\
+                                                refineEspnPlayerlink(str(temp.text),
+                                                                     str(temp.get('href')))
+        except IndexError:
+            pass
+    return playerlink_dict
 
-def page2dictBOX(data):
+
+def refineEspnPlayerlink(key, value):
+    """
+    Takes info from playerlink_dict and turns it into dict
+    for importing data into "
+    players_site" MySQL table;
+    """
+    temp = dict()
+    temp['first']   = ' '.join(key.split(' ')[:-1])
+    temp['last']    = key.split(' ')[-1]
+    temp['id']      = value.split('/')[-2]
+    temp['pbp_name'] = ' '.join(value.split('/')[-1].split('-'))
+    temp['web_page'] = value
+    return temp  
+
+
+def espnGameInfoFromBox(summary, player_info):
+    details     = []
+    content     = []
+    for line in summary:
+        details.append([str(h.text.encode('utf8')) for h in line.findAll('th')])
+        content.append([str(h.text.encode('utf8')) for h in line.findAll('td')])
+
+
+def structureBoxContent(data):
     '''
     Box score output from parseESPNPages to (loose) dictionary.  Not
     too much processing here, as the only real reasons to vist the box
@@ -90,8 +86,11 @@ def page2dictBOX(data):
     '''
     pageDict = dict()
 
+    ## where are these functions?
     player_names = getUsedNames(data['playerlinks'])
     player_ids = getESPNIDs(data['playerlinks'])
+    ## the last two names are not required.  IDs and Names in
+    ## the dictionary created with "espnPlayerInfoFromBox"
     box_data = BoxInfo(box, details, player_names, player_ids)
     teamsheader = TeamsHeader(data['details'])
     boxinfo = BoxInfo(box, details, player_names, player_ids)
@@ -153,6 +152,7 @@ def getTeamPlayers(box, start_index, bench_index, total_index, player_names):
     team_2 = [player_names[name] for name in team_2]
     return team_1, team_2
 
+
 def getPlayerDetails(box, player_names, player_ids):
     '''
     Grabs box score details for each player;
@@ -165,6 +165,7 @@ def getPlayerDetails(box, player_names, player_ids):
                                                                                line.split(',')[1]
     return playerdetails
 
+
 def getExtrasDetails(box, start_index, total_index):
     '''
     Grabs all the extra stuff sitting after the team totals and such;
@@ -174,6 +175,7 @@ def getExtrasDetails(box, start_index, total_index):
     extrasdetails['homeExtra'] = box[total_index[0]:start_index[1]]
     extrasdetails['awayExtra'] = box[total_index[1]-1:]
     return extrasdetails
+
 
 def TeamsHeader(details, start_index):
     '''Grabs home / away team and stats header'''
