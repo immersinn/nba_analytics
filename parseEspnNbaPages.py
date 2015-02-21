@@ -15,7 +15,8 @@ empty_str_filter = lambda x: x not in ['', '\xc2\xa0']
 
 
 #////////////////////////////////////////////////////////////
-#{ Set and Get content
+#{ process the recap / summary nba page from espn
+#{ DOES NOT WORK PROPERLY AT THE MOMENT
 #////////////////////////////////////////////////////////////
 
 
@@ -34,7 +35,7 @@ def espnRecapFromSoup(soup, attrs):
 
 
 def getText(raw):
-    '''Gets same summary text from recap page'''
+    """Gets same summary text from recap page"""
     text_start = "<!-- begin recap text -->"    # these are super handy
     text_stops = "<!-- end recap text -->"
     text = raw[raw.find(text_start)+len(text_start):\
@@ -50,13 +51,19 @@ def getText(raw):
 
 def espnBoxFromSoup(soup, labels, game_id):
     """
-    url is a box score url obtained from score-summary ESPN page;
-    use BeautifulSoup to parse apart data_in; all relevant data found
-    in 'table' HTML structures, hence we grab those;
+    :type soup: bs4 soup
+    :param soup: soup form of box score ESPN page
 
-        "details" are headers, teams stuff;
-        "content" is actual player data;
+    :type labels: list
+    :param labels: specific html labels that correspond to important
+    data in the box score table
 
+    :type game_id: str
+    :param game_id: ESPN game id for current game
+
+    :rtype: dict
+
+    Calls modules to extract desired info from ESPN box score page.
     """
     summary = espnSummaryFromBox(soup, labels)
     player_info = espnPlayerInfoFromBox(summary, game_id)
@@ -73,6 +80,11 @@ def espnSummaryFromBox(soup, labels):
 
 
 def headerAndContentFromBox(summary):
+    """
+    Splits the box score table into column header information
+    ('details') and content rows (content).  Returns a tuple
+    of these lists.
+    """
     details     = []
     content     = []
     for line in summary:
@@ -82,18 +94,21 @@ def headerAndContentFromBox(summary):
 
 
 def startIndex(details):
+    """Determines lines where starter info begins"""
     start_index = [i for i in range(len(details)) if \
                    details[i] and details[i][0]=='STARTERS']
     return start_index
 
 
 def benchIndex(details):
+    """Determine lines where bench player info begins"""
     bench_index = [i for i in range(len(details)) if \
                    details[i] and details[i][0]=='BENCH']
     return bench_index
 
 
 def totalsIndex(details):
+    """Determines lines where team total info begins"""
     totals_index = [i for i in range(len(details)) if \
                     details[i] and details[i][0]=='TOTALS']
     return totals_index
@@ -120,6 +135,12 @@ def espnPlayerInfoFromBox(summary, game_id):
 
 
 def playerLinksFromBox(summary):
+    """
+    Extracts information for the players in the game from the box
+    score table.  This includes full names, ESPN player ids,
+    and links to the players' ESPN pages. Returned as a dict object
+    where player ESPN ids are the keys.
+    """
     playerlink_dict = dict()
     for line in summary:
         try:
@@ -151,7 +172,16 @@ def refineEspnPlayerlink(name, value):
 
 def playerStatsFromBox(summary):
     """
+    For each player listed in the box score, extracts the relevant
+    game-summary stats for the player. Places in a dict object.
 
+    Key: full player name recorded in box score table
+
+    Value: dict, where each key is a stat attribute ('players_fields')
+    and the value is the respective value recorded.
+
+    Some players on the roster do not play.  Notes listed in the box
+    score table are recorded for them in lieu of game stats.
     """
     details, content = headerAndContentFromBox(summary)
     starters_index = startIndex(details)
@@ -175,6 +205,20 @@ def playerStatsFromBox(summary):
 
 
 def buildPlayerStatsDict(players_fields, info):
+    """
+    :type players_fields: list
+    "param players_fields: list of str stat names listed in the
+    box score table
+
+    :type info: str
+    :param info: line from the box score table corresponding to
+    a player in the game.  Contains summary stat info for player
+
+    :rtype: dict
+
+    Parses a line in the box score table corresponding to player
+    data and structures into a dict object
+    """
     name = info[0].split(',')[0].strip()
     pos = info[0].split(',')[1].strip()
     info = filter(empty_str_filter, info[1:])
@@ -189,7 +233,16 @@ def buildPlayerStatsDict(players_fields, info):
 
 def espnGameInfoFromBox(summary, game_id):
     """
+    :type summary: bs4 soup
+    :param summary: table correspnding to box score data
 
+    :type game_id: str
+    :param game_id: ESPN id corresponding to game
+
+    :rtype game_info: dict
+    
+    Calls methods to extract various data from the ESPN box score
+    table and places into a dictionary
     """
     details, content = headerAndContentFromBox(summary)
     game_info = {}
@@ -202,6 +255,9 @@ def espnGameInfoFromBox(summary, game_id):
 
 
 def teamsFromBox(details):
+    """
+    Determines the teams playing in the game from the box score data
+    """
     start_index = startIndex(details)
     away = details[0][0]
     home = details[start_index[1]-1][0]
@@ -209,6 +265,15 @@ def teamsFromBox(details):
 
 
 def teamStatsFromBox(summary):
+    """
+    :type summary: bs4 soup
+    :param summary: table correspnding to box score data
+
+    :rtype totals: dict
+
+    Parses the box score table and extracts game summary data for
+    each team playing in the game.
+    """
     details, content = headerAndContentFromBox(summary)
     totals_index = totalsIndex(details)
     totals_fields = filter(empty_str_filter,
@@ -223,6 +288,10 @@ def teamStatsFromBox(summary):
     
 
 def startersFromBox(details, content):
+    """
+    Extracts the names of the starting players for each team and
+    returns a dict containing the home and away starters
+    """
     starters_index = startIndex(details)
     starters = {}
     for i,n in zip(starters_index, ['away', 'home']):
@@ -235,6 +304,10 @@ def startersFromBox(details, content):
 
 
 def benchFromBox(details, content):
+    """
+    Extracts the non-starting plaeyers for each team and returns
+    a dict containing the home and away players
+    """
     bench_index = benchIndex(details)
     totals_index = totalsIndex(details)
     bench = {}
@@ -255,15 +328,25 @@ def benchFromBox(details, content):
 
 
 def espnPbpFromSoup(soup, labels):
-    '''
-    url is a play-by-play url obtained from score-summary ESPN page;
-    use BeautifulSoup to parse apart data_in; all relevant data found
-    in 'table' HTML structures, hence we grab those;
-    '''
+    """
+    :type soup: bs4 soup
+    :param soup: table from play-by-play ESPN page corresponding to
+    the play-by-play data table
+
+    :type labels: list
+    :param labels: specific html labels that correspond to important
+    data in the play-by-play table
+
+    :rtype: list
+    
+    Parses the relevant table on the ESPN play-by-play page to extract
+    each line item in the table.  Content is unstructured text data
+    that still needs to be parsed to obtain information useful for
+    analyzing the game flow.
+    """
     tables = soup.find_all('div', {labels[0]:labels[1]})
     table = tables[1]
     pbp = table.findAll('tr')
-    '''Use BS to get the headers (e.g., home and away team for game)'''
     header      = [str(h.text) for h in pbp[1].findAll('th')]
     content     = []
     for line in pbp[2:]:
@@ -276,8 +359,30 @@ def espnPbpFromSoup(soup, labels):
 
 def structurePbpContent(head, line):
     """
+    :type head: list
+    :param head: column header info from play-by-play page
+
+    :type line: str
+    :param line: a single line from the play-by-play table
+
+    :rtype: dict
+    
     For a line in the play-by-play data, structure the raw info
-    content into a dictionary.
+    into a dict.
+
+    Each key is a field indicated in "head". (away team name,
+    score, home team name, time).  Field associated with a team
+    name contains content if the event occuring on that line is
+    associated with a player / players on that team.  Otherwise,
+    empty string.
+
+    Timeouts and end of quarter / game lines are also present and
+    have a slightly different structure.
+
+    Lines are denoted by their type ('Event' key in returnd
+    dictionary; values are 'play', 'timeout', and 'end_of_quarter').
+    Content from the line is recorded under the 'Details' key.
+        
     """
     try:
         line = {head[0]:line[0],
@@ -313,6 +418,18 @@ def structurePbpContent(head, line):
 
 
 def espnShotsFromSoup(soup, game_id):
+    """
+    :type soup: bs4 soup
+    :param soup: soup format of the ESPN shots xml file
+
+    :type game_id: str
+    :param game_id: ESPN game id for current game
+    Extracts the shot data from the .xml file linked to
+    the game.  Contains locations, shooter, missed/made,
+    and pts.
+
+    See "espnShotDictFromRaw" for details.
+    """
     shots = soup.findAll('shot') #'Shot' or 'shot'?
     shot_dict = espnShotDictFromRaw(shots, game_id)
     return shot_dict

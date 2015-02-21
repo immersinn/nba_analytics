@@ -25,19 +25,11 @@ nba_box     = "http://scores.espn.go.com/nba/boxscore?gameId=" + gameID
 ncaa_root   = "http://scores.espn.go.com/ncb/scoreboard?date=" + date
 '''
 '''Links and paths'''
-nba_root        = "http://scores.espn.go.com/nba/scoreboard?date="
 nba_ext         = "http://scores.espn.go.com/nba/recap?gameId="
 nba_box         = "http://scores.espn.go.com/nba/boxscore?gameId="
 nba_pbp         = "http://scores.espn.go.com/nba/playbyplay?gameId="
 nba_shots       = "http://sports.espn.go.com/nba/gamepackage/data/shot?gameId="
 
-ncaa_root       = "http://scores.espn.go.com/ncb/scoreboard?date="
-
-default_path    = "/Users/sinn/NBA-Data-Stuff/DataFiles"
-
-root_dict       = {'NBA':nba_root,
-                   'NCAM':ncaa_root,
-                   }
 
 MASTER_DATA_LIST = ['recap',
                     'play_by_play',
@@ -45,14 +37,6 @@ MASTER_DATA_LIST = ['recap',
                     'shots',]
 
 class NBAGame():
-    """
-
-    NBAGame Object for handling data associated with NBA games.
-
-
-
-    :rtype :
-    """
 
 
     def __init__(self, game_id, verbose=False):
@@ -64,9 +48,21 @@ class NBAGame():
         :param verbose: indicates whether information regarding processes
         are printed to output
         """
-        
+
+        self.game_type = 'NBA'
+##        self.season = need to add this; 2014Regular, 2010Playoffs
         self.game_id = game_id
         self.verbose = verbose
+
+
+    def initFromEspn(self):
+        """
+
+        """
+##        self.retrieveRecapFromUrl()
+        self.retrievePBPFromUrl()
+        self.retrieveBoxScoreFromUrl()
+        self.retrieveShotsFromUrl()
 
 
     def checkDbForGame(self, db_conn):
