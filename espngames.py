@@ -38,20 +38,49 @@ default_path    = "/Users/sinn/NBA-Data-Stuff/DataFiles"
 root_dict       = {'NBA':nba_root,
                    'NCAM':ncaa_root,
                    }
-null_value      = '&nbsp;'
-space_holder = u'\xc2\xa0'                  # curiousior and curiousior (sp?)
-max_args        = 2
 
+MASTER_DATA_LIST = ['recap',
+                    'play_by_play',
+                    'player_stats', 'game_stats',
+                    'shots',]
 
 class NBAGame():
+    """
+
+    NBAGame Object for handling data associated with NBA games.
 
 
-    def __init__(self, gameId, verbose=False):
-        self.gameId = gameId
+
+    :rtype :
+    """
+
+
+    def __init__(self, game_id, verbose=False):
+        """
+        :type game_id: str
+        :param game_id: ESPN game id for game in question
+
+        :type verbose: bool
+        :param verbose: indicates whether information regarding processes
+        are printed to output
+        """
+        
+        self.game_id = game_id
         self.verbose = verbose
 
 
+    def checkDbForGame(self, db_conn):
+        """
+        Checks to see game has been initialized in the DB.
+        """
+        pass
+
+
     def retrieveGameData(self):
+        """
+        Wrapper for running modules to retreive data specifified
+        by self.game_id
+        """
 ##        self.retrieveRecap()
         self.retrievePBP()
         self.retrieveBoxScore()
@@ -60,31 +89,56 @@ class NBAGame():
 
     def retrieveRecap(self):
         """
-        Really this is the recap page, but also grabs some other info like game
-        location and time, etc; also story analysis of game;
+        Retrieves "recap" data for game.  Checks if game info is in
+        DB.  If yes, get from there.  Else, go to ESPN and pull data
+        from there.
+
+        Todo:  add functionality to pull data from DB
+        """
+        self.retrieveRecapFromUrl()
+
+
+    def retrieveRecapFromUrl(self):
+        """
+        Retreive recap / summary data for game from ESPN URL.
         """
         
         try:
-            url = nba_ext + str(self.gameId)
+            url = nba_ext + str(self.game_id)
             if self.verbose: print(url)
-            ext = retrieveEspnNbaData.dataFromUrl(url, 'ext')
+            ext = retrieveEspnNbaData.dataFromUrl(url,
+                                                  'ext',
+                                                  self.game_id)
         except ValueError:
             # need some stuff to spit out error info...
-            print('Failed to retreive recap for game ' + str(gameid))
+            print('Failed to retreive recap for game ' +\
+                  str(self.game_id))
             ext = dict()
         self.recap = ext
     
 
     def retrievePBP(self):
         """
-        Given an ESPN game ID grabs play-by-play page, forms it into a
-        structured doc;
+        Retrieves "play-by-play" data for game.  Checks if game info is in
+        DB.  If yes, get from there.  Else, go to ESPN and pull data
+        from there.
+
+        Todo:  add functionality to pull data from DB
+        """
+        self.retrievePBPFromUrl()
+
+
+    def retrievePBPFromUrl(self):
+        """
+        Retrieve play-by-play data for game from ESPN URL.
         """
         
         try:
-            url = nba_pbp + str(self.gameId) + "&period=0"
+            url = nba_pbp + str(self.game_id) + "&period=0"
             if self.verbose: print(url)
-            pbp = retrieveEspnNbaData.dataFromUrl(url, 'pbp')
+            pbp = retrieveEspnNbaData.dataFromUrl(url,
+                                                  'pbp',
+                                                  self.game_id)
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive play-by-play for game ' + str(gameid))
@@ -94,35 +148,78 @@ class NBAGame():
 
     def retrieveBoxScore(self):
         """
-        Given an ESPN game ID grabs the box score feed page, turns it into
-        a structured doc;
+        Retrieves "box score" data for game.  Checks if game info is in
+        DB.  If yes, get from there.  Else, go to ESPN and pull data
+        from there.
+
+        Todo:  add functionality to pull data from DB
+        """
+        self.retrieveBoxScoreFromUrl()
+
+
+    def retrieveBoxScoreFromUrl(self):
+        """
+        Retrieve box score information for game from ESPN URL.
         """
         
         try:
-            url = nba_box + str(self.gameId)
+            url = nba_box + str(self.game_id)
             if self.verbose: print(url)
-            box = retrieveEspnNbaData.dataFromUrl(url, 'box')
+            box = retrieveEspnNbaData.dataFromUrl(url,
+                                                  'box',
+                                                  self.game_id)
+            self.player_stats = box['player_info']
+            self.game_stats = box['game_info']
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive box score for game ' + str(gameid))
             box = dict()
-        self.box_score = box
-        
+
 
     def retrieveShots(self):
         """
-        Given an ESPN game ID grabs the shot placement for the game; makes
-        structured doc;
+        Retrieves "shots" data for game.  Checks if game info is in
+        DB.  If yes, get from there.  Else, go to ESPN and pull data
+        from there.
+
+        Todo:  add functionality to pull data from DB
+        """
+        self.retrieveShotsFromUrl()
+    
+
+    def retrieveShotsFromUrl(self):
+        """
+        Retrieve shot information for game from ESPN URL.
         """
         try:
-            url = nba_shots + str(self.gameId)
+            url = nba_shots + str(self.game_id)
             if self.verbose: print(url)
-            shots = retrieveEspnNbaData.dataFromUrl(url, 'shots')
+            shots = retrieveEspnNbaData.dataFromUrl(url,
+                                                    'shots',
+                                                    self.game_id)
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive shot locations for game ' + str(gameid))
             shots = list()
-        self.shot_locations = shots
+        self.shot_info = shots
+
+
+    def dataToDict(self, which_data=MASTER_DATA_LIST):
+        """
+        Places information specified by which_data about the game
+        into a single dictionary object. "game_id" is always added
+        to the dictionary.
+        """
+        data_dict = {}
+        data_dict["game_id"] = self.game_id
+        for data_label in which_data:
+            if hasattr(self, data_label):
+                data_dict[data_label] = getattr(self, data_label)
+            else:
+                print("%s is not an attribute of game %s" % \
+                      (data_label, self.game_id))
+        return data_dict
+    
 
 
 if __name__=='__main__':
@@ -136,6 +233,9 @@ if __name__=='__main__':
         game = NBAGame(gameId)
         game.retrieveGameData()
         games.append(game)
+        print(game.game_stats['stats'])
+        data_dict = game.dataToDict()
+        print(data_dict['game_stats']['stats'])
         print("Finished retrieving data for game.")
     print "Process complete."
 

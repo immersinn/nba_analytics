@@ -27,3 +27,33 @@ Process flow (maybe):
 Player objects:
 	> initialize with a player id
 	> pull back player info as requested from dbs 
+
+
+15/02/16:
+
+need to update documentation in general (plane flight task…)
+
+=====================================================================
+
+
+Player Stats DB:
+	> sql? mongo is probably easier...
+	> for each game, for each player, records summary stats for player
+	> pid is included --> indexed on
+	> Game id for each entry --> indexed on
+	> random id given to each entry
+
+Game Summary DB:
+	> teams (home, away)
+	> starting players for each team
+	> bench players for each team
+	> game summary (text)
+	{'home' : {'Name':akjlda,
+		   'starters':[],
+		   'bench':[],
+	           'stats':{}
+		  }
+	'away' : etc.}
+
+
+

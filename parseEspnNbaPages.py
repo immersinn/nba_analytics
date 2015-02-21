@@ -58,13 +58,14 @@ def espnBoxFromSoup(soup, labels, game_id):
         "content" is actual player data;
 
     """
-    summary = espnSummaryFromBox(soup)
+    summary = espnSummaryFromBox(soup, labels)
     player_info = espnPlayerInfoFromBox(summary, game_id)
     game_info = espnGameInfoFromBox(summary, player_info)
-    return player_info, game_info
+    return {'player_info':player_info,
+            'game_info':game_info}
 
 
-def espnSummaryFromBox(soup):
+def espnSummaryFromBox(soup, labels):
     """Extract important table from Box Soup"""
     tables  = soup.find_all('div', {labels[0]:labels[1]})
     summary = tables[0].findAll('tr')
@@ -157,9 +158,8 @@ def playerStatsFromBox(summary):
     bench_index = benchIndex(details)
     totals_index = totalsIndex(details)
     players_fields = filter(empty_str_filter,
-                            details[start_index[0]][1:])
+                            details[starters_index[0]][1:])
     players_fields = [pf.strip() for pf in players_fields]
-    starters_index = startIndex(details)
     player_stats = {}
     for i in starters_index:
         for j in range(1,6):
@@ -211,12 +211,12 @@ def teamsFromBox(details):
 def teamStatsFromBox(summary):
     details, content = headerAndContentFromBox(summary)
     totals_index = totalsIndex(details)
-    totals_fields = filter(empty_filter,
+    totals_fields = filter(empty_str_filter,
                            details[totals_index[0]][1:])
     totals_fields = [tf.strip() for tf in totals_fields]
     totals = {}
     for i,n in zip(totals_index, ['away', 'home']):
-         tot = filter(empty_filter, content[i+1])
+         tot = filter(empty_str_filter, content[i+1])
          totals[n] = {field:value for\
                       field,value in zip(totals_fields, tot)}
     return totals
@@ -260,18 +260,17 @@ def espnPbpFromSoup(soup, labels):
     use BeautifulSoup to parse apart data_in; all relevant data found
     in 'table' HTML structures, hence we grab those;
     '''
-    tables = self.soup.find_all('div',
-                                        {labels[0]:labels[1]})
+    tables = soup.find_all('div', {labels[0]:labels[1]})
     table = tables[1]
     pbp = table.findAll('tr')
     '''Use BS to get the headers (e.g., home and away team for game)'''
     header      = [str(h.text) for h in pbp[1].findAll('th')]
     content     = []
     for line in pbp[2:]:
-        line    = line.findAll('td')
-        line = [str(e.text.encode('utf8')) for e in temp]
+        line = line.findAll('td')
+        line = [str(e.text.encode('utf8')) for e in line]
         content.append(structurePbpContent(header, line))
-    content = sortPbpContent(content)
+    content = filter(None, content)
     return content
 
 
@@ -285,21 +284,27 @@ def structurePbpContent(head, line):
                 head[1]:line[1] if len(line[1])>2 else '',
                 head[2]:line[2],
                 head[3]:line[3] if len(line[3])>2 else ''}
+        
+        return {'Event':'play',
+                'Details':line}
     except IndexError:
         if len(line)==2:
             if 'timeout' in line[1].lower():
-                line = {'Time':line[0],
-                        'Timeout':line[1]}
+                line = {'Event':'timeout',
+                        'Details':{'Time':line[0],
+                                   'Text':line[1]}
+                        }
             elif 'end' in line[1].lower():
-                line = {'Time':line[0],
-                        'EndOf':line[1]}
+                line = {'Event':'end_of_quarter',
+                        'Details':{'Time':line[0],
+                                   'Text':line[1]}
+                        }
             else:
-                line = {'Other': ';'.join(line)}
-    return line
-
-
-def sortPbpContent(content):
-    return content
+                line = {'Event':'other',
+                        'Details': ';'.join(line)}
+            return line
+        else:
+            return {}
     
 
 #////////////////////////////////////////////////////////////
@@ -307,13 +312,13 @@ def sortPbpContent(content):
 #////////////////////////////////////////////////////////////
 
 
-def espnShotsFromSoup(soup):
-    shots = self.soup.findAll('Shot')
-    shot_dict = espnShotDictFromRaw(shots)
+def espnShotsFromSoup(soup, game_id):
+    shots = soup.findAll('shot') #'Shot' or 'shot'?
+    shot_dict = espnShotDictFromRaw(shots, game_id)
     return shot_dict
 
 
-def espnShotDictFromRaw(shots):
+def espnShotDictFromRaw(shots, game_id):
     """
     Components of the shot:
     d       --> pbp-esq discription (Made 19ft jumper 11:44 in 1st Qtr."
@@ -339,12 +344,13 @@ def espnShotDictFromRaw(shots):
         ShotDict[s['id']] = \
                           {'Q':s['qtr'],
                            'time' : s['d'].split(' ')[3],
-                           'made' : u'0' if s['made']=='false' else u'1',
-                           'pts' : u'2' if s['d'].find('jumper')>-1 else u'3',
+                           'made' : '0' if s['made']=='false' else '1',
+                           'pts' : '2' if s['d'].find('jumper')>-1 else '3',
                            'p' : s['p'],
                            'pid' : s['pid'],
                            't' : s['t'],
                            'x' : s['x'],
-                           'y' : s['y']}
+                           'y' : s['y'],
+                           'game_id':game_id}
     return ShotDict
         
