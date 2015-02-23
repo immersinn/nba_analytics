@@ -5,10 +5,11 @@ NBA data thus far); grabs page @ url and gets pbp / box / extra (all?);
 should be called by a function that is iterating over games for a particular
 day, and push data to code that transmits it to a db
 '''
-import re
+import sys
 
-from bs4 import BeautifulSoup as BS
-from nltk import clean_html
+sys.path.append('/Users/immersinn/Gits/')
+
+from nba_analytics.webpage_parse.soupypages import checkBS4Type
 
 null_value      = '&nbsp;'
 empty_str_filter = lambda x: x not in ['', '\xc2\xa0']
@@ -24,14 +25,8 @@ def espnRecapFromSoup(soup, attrs):
     """
     Really just the recaps page, but also will grab extra info here as well
     """
-    if raw:
-        text = getText(raw)
-    else:
-        text = ''
-    data = dict()
-    for (attr,name) in attrs:
-        data[attr] = soup.find_all('div', {attr:name})
-    return data
+    recap = pullContents(soup)
+    return recap
 
 
 def getText(raw):
@@ -42,6 +37,29 @@ def getText(raw):
                raw.find(text_stops)]
     text = clean_html(text)
     return text
+
+def pullContents(soup):
+    try:
+        header = soup.findAll('h2')[0].contents
+    except IndexError:
+        header = ''
+    paras = soup.findAll('p')
+    content = [cleanContents(p.contents) for p in paras]
+    return {'header':header,
+            'content':content}
+
+def cleanContents(contents):
+    temp = []
+    for i in range(len(contents)):
+	if checkBS4Type(contents[i], 'Tag'):
+            if 'href' in contents[i].attrs.keys():
+                temp.append(contents[i]['href'])
+	elif checkBS4Type(contents[i], 'NavigableString'):
+            temp.append(contents[i])
+        else:
+            temp.append('')
+    return temp
+    
 
 
 #////////////////////////////////////////////////////////////
@@ -431,8 +449,20 @@ def espnShotsFromSoup(soup, game_id):
     See "espnShotDictFromRaw" for details.
     """
     shots = soup.findAll('shot') #'Shot' or 'shot'?
-    shot_dict = espnShotDictFromRaw(shots, game_id)
-    return shot_dict
+    shot_info_dict = espnShotDictFromRaw(shots, game_id)
+    shot_info_list = shotsDictToList(shot_info_dict)
+    return shot_info_list
+
+
+def shotsDictToList(shot_info_dict):
+    """
+    Converts shot
+    """
+    shot_info_list = []
+    for k,v in shot_info_dict.items():
+        v['shot_id'] = k
+        shot_info_list.append(v)
+    return shot_info_list
 
 
 def espnShotDictFromRaw(shots, game_id):

@@ -31,14 +31,23 @@ class espnNbaPage():
     def retrievePageData(self):
         if not hasattr(self, 'soup'):
             self.makeSoup()
-        self.extractDataFromSoup()
+        if self.goodSoup:
+            self.extractDataFromSoup()
+        else:
+            print('Failed to retrieve %s for %s' %\
+                  (self.ptype, self.game_id))
+            self.data = {}
 
         
     def makeSoup(self):
         if self.ptype == 'shots':
-            self.soup = soupFromUrl(self.url, parser='xml')['soup']
+            soup = soupFromUrl(self.url, parser='xml')
+            self.goodSoup = soup['pass']
+            self.soup = soup['soup']
         else:
-            self.soup = soupFromUrl(self.url, hdr=True)['soup']
+            soup = soupFromUrl(self.url, hdr=True)
+            self.goodSoup = soup['pass']
+            self.soup = soup['soup']        
 
 
     def extractDataFromSoup(self):

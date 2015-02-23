@@ -1,17 +1,3 @@
-"""
-This file grabs complete play-by-play pages and box score pages for games
-specified; run from terminal with:
-
-python getESPNPagesNBA.py date|gameidfile|gameid [outputname]
-
-where the first arg can be: a date with the form YYYYMMDD, a file containing
-a list of ESPN game ids, or a single ESPN game id; the second, optional arg
-is the root name of the output pickle files, one for the play-by-play raw
-pages, and the other for the box score raw pages; data format is dictionaries
-with the ESPN game ids as keys and the raw pages as values; if a date is used
-as input, the program attempts to locate that page, and extracts the
-ESPN game ids from the scores summary page for that date;
-"""
 
 import sys
 
@@ -34,12 +20,13 @@ nba_shots       = "http://sports.espn.go.com/nba/gamepackage/data/shot?gameId="
 MASTER_DATA_LIST = ['recap',
                     'play_by_play',
                     'player_stats', 'game_stats',
-                    'shots',]
+                    'shots',
+                    'season',]
 
 class NBAGame():
 
 
-    def __init__(self, game_id, verbose=False):
+    def __init__(self, game_id, season = '', verbose=False):
         """
         :type game_id: str
         :param game_id: ESPN game id for game in question
@@ -50,7 +37,8 @@ class NBAGame():
         """
 
         self.game_type = 'NBA'
-##        self.season = need to add this; 2014Regular, 2010Playoffs
+        if season:
+            self.season = season
         self.game_id = game_id
         self.verbose = verbose
 
@@ -59,7 +47,7 @@ class NBAGame():
         """
 
         """
-##        self.retrieveRecapFromUrl()
+        self.retrieveRecapFromUrl()
         self.retrievePBPFromUrl()
         self.retrieveBoxScoreFromUrl()
         self.retrieveShotsFromUrl()
@@ -197,7 +185,7 @@ class NBAGame():
             # need some stuff to spit out error info...
             print('Failed to retreive shot locations for game ' + str(gameid))
             shots = list()
-        self.shot_info = shots
+        self.shots = shots
 
 
     def dataToDict(self, which_data=MASTER_DATA_LIST):
