@@ -1,63 +1,20 @@
-This repository is a general set of tools for parsing and analyzing NBA play-by-play data;
-methods are primarly those from 82games.com and basketballvalue.com, among others; data is 
-primarily obtained from basketballvalue.com, though apparently espn has all of the data 
-available online as well; 
+This repository contain the python code necessary for scraping NBA data (recap, box score,
+play-by-play, and shot locations) from ESPN.  Current code requires a MongoDB install for 
+dumping scrapes.  
 
-###########################################################################################
-Use:
+No real "analytics" at this point.  Still in the works.  Just scraping at this point.
 
-07/09/12 Update:
+No play-by-play parsing functionality as of now (in progress).  Play by play data left
+"unstructured" (i.e. the play statements are raw text, and not mapped onto a set of
+players and actions), but I'm hoping to change this at some point.
 
-So this has been stagnate for about 6 months now.  I plan on picking things up again in the
-near future.  
+Just as a note:  other than the shot data, nothing really "eye-opening" / amazing will
+come from analyzing this data.  The play by play data recorded is known to be highly
+"sparse" (e.g. no information about passing, player locations, etc., etc.), and box score
+data is notoriously lacking in data for predictive / expalaniative (is that a word?) purposes.
 
-24/03/12 Update:
-
-Just added some files to pull pages from ESPN corresponding to games' play-by-play data and
-box score data (mainly to get the starters, though can also use to confirm successful 
-extraction of play-by-play data by comparing player stats).  Can either provide the actual
-ESPN game ids, or can just provide a date (YYYYMMDD), and the code grabs the pages for 
-games that occured on that date; more to come;
-
-20/03/12 Update:
-Starting to make changes for interfacing w/ a local MySQL database.  Also, going to extend
-the "player" class to account for "player actions", i.e. time-stamped game actions.  Players
-will be provided with a unique ID for each game they participate in.  These will be linked
-back to a "global" player ID for tracking over season / life (need to check into ESPN's
-ID assignment for players; I'm sure they have unique codings, and it would be reasonable
-to use these, for obvious reasons).  This, I think, will reduce the effort required for 
-more in-depth stat and performance analysis.  The database for the NBA data will consist 
-of 5 main tables initially, with other possible additions:
-a) Complete copy of as-is ESPN play-by-play lines with dummy index
-
-b) Modified play-by-play data for each game-player with dummy index so that given a player-game
-id, one can easily access the corresponding set of actions for that individual; also set up such
-that one can easily obtain set of all actions for a game from the table; entries are parsed such
-that events can easily be separated by type, etc., with no processing, only queries;
-
-c) A [player-game id, game-id, actions reference, player-global-id, player-game-stats] table to 
-relate each player-game-id to the global player, the corresponding in-game actions, the 
-corresponding game, and get a game summary of performance
-
-d) A [player-global-id, stats-life, player-game-id-list] table
-
-e)
-
-02/03/12 Update:
-Just finished with some changes to the code, and it's up and running w/ a new 'player' and
-'game' class to carry around / organize data while parsing the play-by-play (will upload
-new stuff soon).  Still need to work out a minutes / time tracker for players and a 
-"who's on the floor" tracker as well.
-
-
-29/02/12
-The NBA_runparse.py used to (yesterday, before I started changing stuff around and adding
-a player and game class to track data over a season) run the play-by-play parsing for a 
-single game, obtaining the typical set of game stats (except for minutes played.  I still
-need to create that module.  Also, I need to add a module for tracking who is on the court
-at a given time.  This would be trivial if the play-by-play listed the starting 5, but no).  
-In other words, there is no way to run the code in the manner intended at the moment.
-
+This project is more meant as a fun way to get soem experience scraping and organizing web
+data and developing an analytics pipeline.
 
 ###########################################################################################
 General Resources:
