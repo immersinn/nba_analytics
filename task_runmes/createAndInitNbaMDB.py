@@ -3,6 +3,10 @@
 #2 Grab game ids for the games in the 2008-2009 Season (Full)
 #3 Can I add some automated testing in here (e.g. query docs?)
 #4 Can I add in a (optional) clean-up step?
+####
+# Seems to be several missing games.  Should be 1230 Reg Season
+# plus 85 playoff games for total of 1315 for this season.  Only
+# 1252 at last run.
 
 
 import sys
@@ -37,7 +41,7 @@ def main():
     until Sunday, June 14
     """
     start_date = [2008, 10, 28]
-    end_date = [2009, 5, 14]
+    end_date = [2009, 6, 14]
     dates = initGamesFromEspn.genDateSeq(start_date, end_date)
     root_url = root_dict['NBA']
     dbs = createAndReturnNbaMdbs()

@@ -152,8 +152,12 @@ class NBAGame():
             box = retrieveEspnNbaData.dataFromUrl(url,
                                                   'box',
                                                   self.game_id)
-            self.player_stats = box['player_info']
-            self.game_stats = box['game_info']
+            if box:
+                self.player_stats = box['player_info']
+                self.game_stats = box['game_info']
+            else:
+                self.player_stats = {}
+                self.game_stats = {}
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive box score for game ' + str(gameid))

@@ -484,20 +484,29 @@ def espnShotDictFromRaw(shots, game_id):
     the X axis runs from left to right and the Y axis runs from
     bottom to top. The center of the hoop is located at (25, 5.25).
     x=25 y=-2 and x=25 y=96 are free-throws (8ft jumpers)
+
+    Free-throws are not included in shot diagram, but are included
+    in play-by-play
     """
 
     ShotDict = {}
     for s in shots:
+        if s['d'].find('jumper')>-1:
+            pts = 2
+        elif s['d'].find('3-pointer')>-1:
+            pts = 3
+        else:
+            pts = 0
         ShotDict[s['id']] = \
                           {'Q':s['qtr'],
                            'time' : s['d'].split(' ')[3],
-                           'made' : '0' if s['made']=='false' else '1',
-                           'pts' : '2' if s['d'].find('jumper')>-1 else '3',
+                           'made' : 0 if s['made']=='false' else 1,
+                           'pts' : pts,
                            'p' : s['p'],
                            'pid' : s['pid'],
                            't' : s['t'],
-                           'x' : s['x'],
-                           'y' : s['y'],
+                           'x' : int(s['x']),
+                           'y' : int(s['y']),
                            'game_id':game_id}
     return ShotDict
         
