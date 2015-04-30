@@ -3,8 +3,7 @@
 import sys
 
 sys.path.append('/Users/immersinn/Gits/')
-
-from  nba_analytics.dbconns import connectMon
+from  dbinterface_python.dbconns import connectMon
 
 
 def main():
@@ -12,10 +11,10 @@ def main():
     shots = connectMon.MongoConn({'db_name':'NBAData',
                                   'coll_name':'Shots'})
     limit = 0
-    shots.query(limit=limit)
+    shots_cursor = shots.query(limit=limit)
     with open(out_file, 'w') as f1:
         header = ''
-        for sd in shots.LastQ:
+        for sd in shots_cursor:
             if not header:
                 sd.pop('_id')
                 header = ','.join(sd.keys())
