@@ -25,7 +25,8 @@ def espnRecapFromSoup(soup, attrs):
     """
     Really just the recaps page, but also will grab extra info here as well
     """
-    recap = pullContents(soup)
+##    recap = pullContents(soup)
+    recap = soup.getText(strip=True)
     return recap
 
 

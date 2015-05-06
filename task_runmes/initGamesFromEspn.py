@@ -1,12 +1,9 @@
 
 import datetime
 import re
-
 import sys
-sys.path.append('/Users/immersinn/Gits/')
-
 from nba_analytics import espngames
-from nba_analytics.webpage_parse.soupypages import makePage
+from nba_analytics.webpage_parse import soupypages
 
 
 nba_root        = "http://scores.espn.go.com/nba/scoreboard?date="
@@ -17,6 +14,7 @@ root_dict       = {'NBA':nba_root,
                    'NCAM':ncaa_root,
                    }
 
+# out of date; espn reformatted their pages 
 key_phrase = re.compile(r'''var thisGame = new gameObj\("(\d{7,12})".*\)''')
 
 
@@ -69,10 +67,22 @@ def retrieveEspnGameIdsForDay(date, root_url):
 
     """
     url = root_url + date
-    scores_page = makePage(url, hdr=False)
+    url = "http://scores.espn.go.com/nba/scoreboard?date=20150202"
+    scores_page = soupypages.soupFromUrl(url)
     if scores_page['pass']:
-        game_ids = key_phrase.findall(scores_page['page'])
+        scores_page = scores_page['soup']
+        game_data = scores_page.body.findAll(id="main-container")[0].find('div', class_='scoreboards').attrs['data-data']
+        game_data = re.subn('true', "'true'", game_data)[0]
+        game_data = re.subn('false', "'false'", game_data)[0]
+        game_data = eval(game_data)
+        game_ids = [game['id'] for game in game_data['events']]
         return game_ids
+    
+##    scores_page = makePage(url, hdr=True)
+##    if scores_page['pass']:
+##        game_ids = key_phrase.findall(scores_page['page'])
+##        return game_ids
+    
     else:
         err_msg = scores_page['err']
         if type(err_msg) == str:

@@ -10,9 +10,6 @@
 
 
 import sys
-
-sys.path.append('/Users/immersinn/Gits/')
-
 from nba_analytics import espngames
 import initGamesFromEspn
 from initGamesFromEspn import root_dict
