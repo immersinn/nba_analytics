@@ -226,7 +226,7 @@ def playerStatsFromBox(summary):
 def buildPlayerStatsDict(players_fields, info):
     """
     :type players_fields: list
-    "param players_fields: list of str stat names listed in the
+    :param players_fields: list of str stat names listed in the
     box score table
 
     :type info: str
@@ -239,7 +239,10 @@ def buildPlayerStatsDict(players_fields, info):
     data and structures into a dict object
     """
     name = info[0].split(',')[0].strip()
-    pos = info[0].split(',')[1].strip()
+    try:
+        pos = info[0].split(',')[1].strip()
+    except IndexError:
+        pos = 'N/A'
     info = filter(empty_str_filter, info[1:])
     if len(info) < len(players_fields):
         stats_dict = {'notes': '<>'.join(info)}

@@ -1,12 +1,5 @@
-"""
-Actual connection handles for Mongo; used by dbconn
-to create the connections.  
-"""
-import sys, os
-import datetime, time
-import math
 
-import pymongo, bson
+import pymongo
 
 
 ######################################################################
@@ -20,15 +13,13 @@ class MongoConn:
     from within python; utilizes pymongo package;
     """
     def __init__(self, args=dict(), **dargs):
-        port = args['port'] \
-                  if 'port' in args.keys() else 27017
-        db_name = args['db_name'] \
-                  if 'db_name' in args.keys() else None
-        coll_name = args['coll_name'] \
-                    if 'coll_name' in args.keys() else None
-        self._store = dict()
+        port = args['port'] if 'port' in args.keys() else 27017
+        db_name = args['db_name'] if 'db_name' in args.keys() else ''
+        coll_name = args['coll_name'] if 'coll_name' in args.keys() else ''
+        self.store = dict()
         self.conn = pymongo.MongoClient(port=port)
-        self.makeDBConn(db_name, verbose=False)
+        if db_name:
+            self.makeDBConn(db_name, verbose=False)
         if 'db' in self.__dict__.keys():
             self.makeCollConn(coll_name)
         self.LastQ = None
@@ -40,21 +31,24 @@ class MongoConn:
             if db_name in self.conn.database_names():
                 self.db = self.conn[db_name]
                 if verbose: print("Mongo db connection was a success!")
-            elif not db_name:
-                print("No db name provided; only conn to mdb privided.")
             elif db_name not in self.conn.database_names():
                 print('Database "%s" does not currently exist' % db_name)
                 print('Add new collection (Y/n)?')
                 yn = input()
                 if yn.lower() in ['y','yes']:
                     self.db = self.conn[db_name]
-                    if verbose: print("Mongo db creation was a success!") 
+                    if verbose: print("Mongo db creation was a success!")
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
         except:
-            ## do some err handling here, yo...
+            ## do some error handling here, yo...
             print('Failure to make connection to db, uknw reason')
 
 
     def makeCollConn(self, coll_name, verbose=True):
+        if 'db' not in self.__dict__:
+            err_msg = "Not currently connected to a database"
+            raise AttributeError, err_msg
         if coll_name in self.db.collection_names():
             self.coll = self.db[coll_name]
             if verbose: print("Mongo coll connection was a success!")
@@ -71,14 +65,14 @@ class MongoConn:
             print('Failure to make connection to coll, uknw reason')
 
 
-    def MongoInsert(self, data, return_ids=False, verbose=False):
+    def insert(self, data, return_ids=False, verbose=False):
         """
         Default insert for dict objects into mongo with this class
         """
         ids = self.coll.insert(data)
-        self._store['lastIDs'] = ids
-        if type(ids)==list():
-            if len(ids)!=len(data):
+        self.store['lastIDs'] = ids
+        if type(ids) == list():
+            if len(ids) != len(data):
                 print("Something went wrong! Not all data inserted...")
             else:
                 if verbose: print("Success!")
@@ -86,72 +80,97 @@ class MongoConn:
             if verbose: print("Success!")
         else:
             print("Something went wrong! Not all data inserted...")
-        if return_ids: return ids
+        if return_ids:
+            return ids
 
-    
-    def RecursInsert(self, data):
+
+    def query(self, spec={}, fields=None,
+              skip=0, limit=50,
+              no_cursor_timeout=False,
+              verbose=False):
         """
-        Mongo has a maximum document size of 16MB; instead of trying
-        to figure out the size of the data, just try, try again.
-        Split after each fail, recursively.
+
         """
-        ids,ers = list(),list()
-        db_index = int(math.floor(len(data)/2.0))
         try:
-            ids1 = self.coll.insert(data[:db_index])
-            ids2 = self.coll.insert(data[db_index:])
-            err = []
-        except:
-            err = sys.exc_info()
-            if type(err[1]) in [pymongo.errors.AutoReconnect,
-                                bson.errors.InvalidDocument]:
-                ids1, err_lst1 = self.RecursInsert(data[:db_index])
-                ids2, err_lst2 = self.RecursInsert(data[db_index:])
-                err = [err, [err_lst1+err_list2]]
+            Cursor = self.coll.find(filter=spec, projection=fields,
+                                    skip=skip, limit=limit,
+                                    no_cursor_timeout=no_cursor_timeout)
+            if Cursor.count(with_limit_and_skip=True)==0:
+                if verbose:
+                    print('No results in collection matched the query.')
             else:
-                ids1 = ids2 = []
-                err = [err, 'Fatal']
-        ids.append(ids1 + ids2)
-        ers.append(err)
-        return ids, ers
-
-
-    def query(self,
-              spec=None,
-              fields=None,
-              skip=0,
-              limit=50,
-              coll=None):
-        if not coll:
-            # for later when >1 coll per instance
-            pass
-        try:
-            self.LastQ = self.coll.find(spec=spec,
-                                        fields=fields,
-                                        skip=skip,
-                                        limit=limit)
-            if self.LastQ.count()==0:
-                print('No results in collection matched the query.')
-            else:
-                numReturned = self.LastQ.count()
-                if numReturned>limit and limit!=0:
-                    numReturned=limit
-                self.LastQLen = numReturned
-                print("%s documents returned" % numReturned) 
+                numReturned = Cursor.count(with_limit_and_skip=True)
+                if verbose:
+                    print("%s documents returned" % numReturned)
+            return Cursor
         except TypeError:
             print('TypeError:  Invalid query arguments!')
 
 
-    def nextItem(self):
-        try:
-            return self.coll.__getitem__()
-        except InvalidOperation:
-            pass
 
-    def close(self):
-        if self.LastQ and self.LastQ.alive:
-            self.LastQ.close()
+######################################################################
+#{ Test run; main method
+######################################################################
+
             
+class NBAMonConn(MongoConn):
+
+    
+    def __init__(self, **dargs):
+        MongoConn.__init__(self, args=dargs)
+
+
+    '''
+    Handles the general call to the fucntions for updating the
+    MySQL database with new information;
+    '''
+    def addInfo(self, pageType ,data):
+        if pageType=='pbp':
+            pass
+        elif pageType=='box':
+            self.updateBox(self, data)
+
+        elif pageType=='ext':
+            pass
+        else:
+            print "Warning! non valid page type; not updating"
+
+
+######################################################################
+#{ Test run; main method
+######################################################################
+
+            
+class RSSMonConn(MongoConn):
+    def __init__(self, sub=None):
+        db_name = 'WebPages'
+        coll_name = 'Wired'
+        if sub:
+            coll_name += '.'+sub
+        MongoConn.__init__(self,
+                           {'db_name':db_name,
+                           'coll_name':coll_name})
+
+
+######################################################################
+#{ General Create and Connect
+######################################################################
+
+
+def createAndReturnMDB(db_name='', coll_name=''):
+    mdb_obj = MongoConn()
+    if not db_name:
+        print("Enter new DB name or hit return for default:")
+        db_name = input()
+        db_name = db_name if db_name else 'SentimentSentenceData'
+    if not coll_name:
+        print("Enter new collection name or hit return for default:")
+        coll_name = input()
+        coll_name = coll_name if coll_name else 'Sentences'
+    mdb_obj.makeDBConn(db_name)
+    mdb_obj.makeCollConn(coll_name)
+    return mdb_obj
+       
 
 ######################################################################
 #{ Test run; main method

@@ -3,7 +3,7 @@ import datetime
 import re
 import sys
 from nba_analytics import espngames
-from nba_analytics.webpage_parse import soupypages
+from nba_analytics.webpage_parse import soupypages, makePage
 
 
 nba_root        = "http://scores.espn.go.com/nba/scoreboard?date="
@@ -67,16 +67,34 @@ def retrieveEspnGameIdsForDay(date, root_url):
 
     """
     url = root_url + date
-    url = "http://scores.espn.go.com/nba/scoreboard?date=20150202"
+    
+##    url = "http://scores.espn.go.com/nba/scoreboard?date=20150202"
+
+##    scores_page = soupypages.soupFromUrl(url)
+##    if scores_page['pass']:
+##        scores_page = scores_page['soup']
+##        game_data = scores_page.body.findAll(id="main-container")[0].find('div', class_='scoreboards').attrs['data-data']
+##        game_data = re.subn('true', "'true'", game_data)[0]
+##        game_data = re.subn('false', "'false'", game_data)[0]
+##        game_data = eval(game_data)
+##        game_ids = [game['id'] for game in game_data['events']]
+##        return game_ids
+
     scores_page = soupypages.soupFromUrl(url)
     if scores_page['pass']:
         scores_page = scores_page['soup']
-        game_data = scores_page.body.findAll(id="main-container")[0].find('div', class_='scoreboards').attrs['data-data']
-        game_data = re.subn('true', "'true'", game_data)[0]
-        game_data = re.subn('false', "'false'", game_data)[0]
+        scripts = scores_page.head.findAll('script')
+        game_data = [s for s in scripts if s.contents and s.contents[0].startswith('window.espn.scoreboardData')][0]
+        game_data = re.search(r'{.*}', game_data.contents[0]).group()
+        game_data = re.subn('true', '"true"', game_data)[0]
+        game_data = re.subn('false', '"false"', game_data)[0]
+        game_data = re.subn(r'null', '""', game_data)[0]
+        game_data = game_data.split(';window.espn.scoreboardSettings')[0]
         game_data = eval(game_data)
         game_ids = [game['id'] for game in game_data['events']]
-        return game_ids
+        return(game_ids)
+    
+
     
 ##    scores_page = makePage(url, hdr=True)
 ##    if scores_page['pass']:
