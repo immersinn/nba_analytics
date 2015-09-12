@@ -44,7 +44,7 @@ def retrieveDumpGameMoments(game_id, conn):
     """
 
     stop = False
-    count = 0
+    count = 1
     consecutive_fails = 0
 
     while not stop:
