@@ -156,8 +156,8 @@ def genDateSeq(start_date, end_date):
 
     
 if __name__ == "__main__":
-    start_date = [2015, 2, 2]
-    end_date = [2015, 2, 10]
+    start_date = [2014, 10, 25]
+    end_date = [2015, 6, 20]
     cat = 'NBA'
     initNbaGamesFromEspn(start_date, end_date)
 ##    game_ids = retrieveEspnGameIds(start_date, end_date, cat)

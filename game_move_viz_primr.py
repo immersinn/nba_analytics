@@ -83,21 +83,71 @@ def draw_court(ax=None, color="gray", lw=1, zorder=0):
     return ax
 
 
-def main():
+def standardPosPlot(pos_df, draw_court=False):
 
+    # Initialize figure
     plt.figure(figsize=(15, 11.5))
-
     # Plot the movemnts as scatter plot
     # using a colormap to show change in game clock
-    plt.scatter(harden.x_loc, -harden.y_loc, c=harden.game_clock,
-                cmap=plt.cm.Blues, s=1000, zorder=1)
+    plt.scatter(pos_df.x_loc, - pos_df.y_loc,
+                c = pos_df.game_clock,
+                cmap = plt.cm.Blues, zorder = 1)
     # Darker colors represent moments earlier on in the game
     cbar = plt.colorbar(orientation="horizontal")
     # invert the colorbar to have higher numbers on the left
     cbar.ax.invert_xaxis()
-
-    draw_court()
-
+    # (Optional) Draw court image
+    if draw_court:
+        draw_court()
+    # Set axis limits
     plt.xlim(0, 101)
-    plt.ylim(-50, 0)
+    plt.ylim(-51, 0)
+    # Dram plot
     plt.show()
+
+
+def distancesPlot():
+
+    # Create some lists that will help create our plot
+    # Distance data
+    distances = [ariza_barnes, ariza_paul, harden_jordan, howard_barnes]
+    # Labels for each line that we will plopt
+    labels = ["Ariza - Barnes", "Ariza - Paul", "Harden - Jordan", "Howard - Barnes"]
+    # Colors for each line
+    colors = sns.color_palette('colorblind', 4)
+
+    plt.figure(figsize=(12,9))
+
+    # Use enumerate to index the labels and colors and match
+    # them with the proper distance data
+    for i, dist in enumerate(distances):
+        plt.plot(time_df.shot_clock.unique(), dist, color=colors[i])
+        
+        y_pos = dist[-1]
+        
+        plt.text(6.15, y_pos, labels[i], fontsize=14, color=colors[i])
+
+    # Plot a line to indicate when Harden passes the ball
+    plt.vlines(7.7, 0, 30, color='gray', lw=0.7)
+    plt.annotate("Harden passes the ball", (7.7, 27), 
+                 xytext=(8.725, 26.8), fontsize=12, 
+                 arrowprops=dict(facecolor='lightgray', shrink=0.10))
+
+    # Create horizontal grid lines
+    plt.grid(axis='y',color='gray', linestyle='--', lw=0.5, alpha=0.5)
+
+    plt.xlim(10.1, 6.2)
+
+    plt.title("The Distance (in feet) Between Players \nFrom the Beginning"
+              " of Harden's Drive up until Ariza Releases his Shot", size=16)
+    plt.xlabel("Time Left on Shot Clock (seconds)", size=14)
+
+    # Get rid of unneeded chart lines
+    sns.despine(left=True, bottom=True) 
+
+    plt.show()
+
+
+def main():
+
+    pass
