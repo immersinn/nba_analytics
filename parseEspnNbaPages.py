@@ -85,8 +85,12 @@ def espnBoxFromSoup(soup, labels, game_id):
     Calls modules to extract desired info from ESPN box score page.
     """
     summary = espnSummaryFromBox(soup, labels)
-    player_info = espnPlayerInfoFromBox(summary, game_id)
-    game_info = espnGameInfoFromBox(summary, player_info)
+    if summary:
+        player_info = espnPlayerInfoFromBox(summary, game_id)
+        game_info = espnGameInfoFromBox(summary, player_info)
+    else:
+        player_info = {}
+        game_info = {}
     return {'player_info':player_info,
             'game_info':game_info}
 
@@ -94,7 +98,10 @@ def espnBoxFromSoup(soup, labels, game_id):
 def espnSummaryFromBox(soup, labels):
     """Extract important table from Box Soup"""
     tables  = soup.find_all('div', {labels[0]:labels[1]})
-    summary = tables[0].findAll('tr')
+    if tables:
+        summary = tables[0].findAll('tr')
+    else:
+        summary = []
     return summary
 
 

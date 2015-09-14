@@ -38,7 +38,7 @@ def main():
     The 2009 NBA Playoffs started on Saturday, April 18, 2009 and ran
     until Sunday, June 14
     """
-    start_date = [2014, 10, 25]
+    start_date = [2015, 1, 26]
     end_date = [2015, 6, 20]
     dates = initGamesFromEspn.genDateSeq(start_date, end_date)
     root_url = root_dict['NBA']
@@ -60,7 +60,10 @@ def main():
             game_info_dict = game.dataToDict()
             try:
                 shot_info_list = game_info_dict.pop('shots')
-                shots.insert(shot_info_list)
+                if shot_info_list:
+                    shots.insert(shot_info_list)
+                else:
+                    print('Empty shot data for game %s' % game_id)
             except KeyError:
                 print('No shot data for game %s' % game_id)
             games.insert(game_info_dict)
