@@ -19,12 +19,15 @@ MASTER_DATA_LIST = ['recap',
                     'play_by_play',
                     'player_stats', 'game_stats',
                     'shots',
-                    'season',]
+                    'season',
+                    'date']
 
 class NBAGame():
 
 
-    def __init__(self, game_id, season = '', verbose=False):
+    def __init__(self, game_id,
+                 season = '', date = '',
+                 verbose=False):
         """
         :type game_id: str
         :param game_id: ESPN game id for game in question
@@ -37,6 +40,8 @@ class NBAGame():
         self.game_type = 'NBA'
         if season:
             self.season = season
+        if date:
+            self.date = date
         self.game_id = game_id
         self.verbose = verbose
 

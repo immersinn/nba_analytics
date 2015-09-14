@@ -10,10 +10,11 @@
 
 
 import sys
+
 from nba_analytics import espngames
 import initGamesFromEspn
 from initGamesFromEspn import root_dict
-from nba_analytics.dbconns import connectMon
+from dbinterface_python.dbconns import connectMon
 
 
 
@@ -37,32 +38,32 @@ def main():
     The 2009 NBA Playoffs started on Saturday, April 18, 2009 and ran
     until Sunday, June 14
     """
-    start_date = [2008, 10, 28]
-    end_date = [2009, 6, 14]
+    start_date = [2014, 10, 25]
+    end_date = [2015, 6, 20]
     dates = initGamesFromEspn.genDateSeq(start_date, end_date)
     root_url = root_dict['NBA']
     dbs = createAndReturnNbaMdbs()
     games = dbs['games']
     shots = dbs['shots']
     for date in dates:
-        if int(date) < 20090418:
-            season = '20082009Regular'
+        if int(date) < 20150601:
+            season = '20142015Regular'
         else:
-            season = '20082009Playoffs'
+            season = '20142015Playoffs'
         game_ids = initGamesFromEspn.retrieveEspnGameIdsForDay(date, root_url)
         tot_ids = len(game_ids)
         print("%s game ids retrieved for %s" % (tot_ids, date))
         for game_id in game_ids:
             print("Game ID: %s" % game_id)
-            game = espngames.NBAGame(game_id, season=season)
+            game = espngames.NBAGame(game_id, season=season, date=date)
             game.initFromEspn()
             game_info_dict = game.dataToDict()
             try:
                 shot_info_list = game_info_dict.pop('shots')
-                shots.MongoInsert(shot_info_list)
+                shots.insert(shot_info_list)
             except KeyError:
                 print('No shot data for game %s' % game_id)
-            games.MongoInsert(game_info_dict)
+            games.insert(game_info_dict)
 
 
 if __name__=="__main__":

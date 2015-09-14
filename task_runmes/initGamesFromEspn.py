@@ -31,8 +31,8 @@ def initNbaGamesFromEspn(start_date, end_date):
         game.initFromEspn()
         game_info_dict = game.dataToDict()
         shot_data = game_info_dict.pop('shots')
-        print(game_info_dict['recap']['header'])
-        print(game_info_dict['game_stats']['stats'])
+        print(game_info_dict['recap'][:50])
+        print(game_info_dict['game_stats']['stats']['home'])
 
 
 #////////////////////////////////////////////////////////////
