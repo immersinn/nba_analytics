@@ -46,10 +46,12 @@ def main():
     games = dbs['games']
     shots = dbs['shots']
     for date in dates:
-        if int(date) < 20150601:
+        if int(date) < 20150418:
             season = '20142015Regular'
-        else:
+        elif int(date) < 20150604:
             season = '20142015Playoffs'
+        else:
+            season = '20142015Finals'
         game_ids = initGamesFromEspn.retrieveEspnGameIdsForDay(date, root_url)
         tot_ids = len(game_ids)
         print("%s game ids retrieved for %s" % (tot_ids, date))
