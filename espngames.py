@@ -1,5 +1,5 @@
 
-import retrieveEspnNbaData
+import espnNbaDataExtraction as ede
 
 
 '''
@@ -54,6 +54,7 @@ class NBAGame():
         self.retrievePBPFromUrl()
         self.retrieveBoxScoreFromUrl()
         self.retrieveShotsFromUrl()
+        self.retrieveMomentsFromUrl()
 
 
     def checkDbForGame(self, db_conn):
@@ -121,11 +122,7 @@ class NBAGame():
         """
         
         try:
-            url = nba_pbp + str(self.game_id) + "&period=0"
-            if self.verbose: print(url)
-            pbp = retrieveEspnNbaData.dataFromUrl(url,
-                                                  'pbp',
-                                                  self.game_id)
+            pbp = ede.retrievePbpEspn(self.game_id)
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive play-by-play for game ' + str(gameid))
@@ -193,6 +190,26 @@ class NBAGame():
             print('Failed to retreive shot locations for game ' + str(gameid))
             shots = list()
         self.shots = shots
+
+
+    def retrieveMoments(self):
+        """
+
+        """
+        self.retrieveMomentsFromUrl()
+
+
+    def retrieveMomentsFromUrl():
+        """
+
+        """
+        try:
+            moments = ede.retrieveMomEspn(self.game_id)
+        except ValueError:
+            print('Failed to retreive moments for game ' + game_id)
+            moments = ()
+        self.moments = moments
+            
 
 
     def dataToDict(self, which_data=MASTER_DATA_LIST):

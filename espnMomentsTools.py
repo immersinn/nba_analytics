@@ -46,9 +46,7 @@ def retrieveDumpGameMoments(game_id, conn):
         print('Attempting event id %s' % count)
         attempt_count = 1
         event_id = count2Id(count)
-        url = ''.join([url_base,
-                   event_txt, event_id,
-                   game_txt, game_id])
+        url = momUrl(event_id, game_id)
         data_dict = {}
         while attempt_count < 4 and not data_dict:
             response = requests.get(url)
