@@ -30,3 +30,12 @@ if __name__=="__main__":
         print('Retrieveing data for game id %s' % gid)
         retrieveDumpGameMoments(gid, mome_conn)
         print('Completed extracting moments')
+
+
+    # This is all a good idea, but....
+    # want to pull new data format from new ESPN stats site, so
+    # 1) Need to write new code for retrieving, parsing ESPN game data
+    # 2) Use new game_id naming scheme to query moments data
+    # 3) Pull new summary moments / events player data for games
+
+    # espngames.py should be updated / rewritten
