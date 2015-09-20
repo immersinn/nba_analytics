@@ -1,4 +1,5 @@
 
+import retrieveEspnNbaData
 import espnNbaDataExtraction as ede
 
 
@@ -14,13 +15,14 @@ nba_box         = "http://scores.espn.go.com/nba/boxscore?gameId="
 nba_pbp         = "http://scores.espn.go.com/nba/playbyplay?gameId="
 nba_shots       = "http://sports.espn.go.com/nba/gamepackage/data/shot?gameId="
 
-
+'play_by_play'
 MASTER_DATA_LIST = ['recap',
                     'play_by_play',
                     'player_stats', 'game_stats',
                     'shots',
                     'season',
-                    'date']
+                    'date',
+                    'moments', 'player_stats_adv', 'team_stats_adv']
 
 class NBAGame():
 
@@ -54,7 +56,6 @@ class NBAGame():
         self.retrievePBPFromUrl()
         self.retrieveBoxScoreFromUrl()
         self.retrieveShotsFromUrl()
-        self.retrieveMomentsFromUrl()
 
 
     def checkDbForGame(self, db_conn):
@@ -122,7 +123,10 @@ class NBAGame():
         """
         
         try:
-            pbp = ede.retrievePbpEspn(self.game_id)
+            url = nba_pbp + str(self.game_id)
+            pbp = retrieveEspnNbaData.dataFromUrl(url,
+                                                  'pbp',
+                                                  self.game_id)
         except ValueError:
             # need some stuff to spit out error info...
             print('Failed to retreive play-by-play for game ' + str(gameid))
@@ -192,26 +196,6 @@ class NBAGame():
         self.shots = shots
 
 
-    def retrieveMoments(self):
-        """
-
-        """
-        self.retrieveMomentsFromUrl()
-
-
-    def retrieveMomentsFromUrl():
-        """
-
-        """
-        try:
-            moments = ede.retrieveMomEspn(self.game_id)
-        except ValueError:
-            print('Failed to retreive moments for game ' + game_id)
-            moments = ()
-        self.moments = moments
-            
-
-
     def dataToDict(self, which_data=MASTER_DATA_LIST):
         """
         Places information specified by which_data about the game
@@ -226,7 +210,73 @@ class NBAGame():
             else:
                 print("%s is not an attribute of game %s" % \
                       (data_label, self.game_id))
-        return data_dict
+        return(data_dict)
+
+
+class NBAStatsGame(NBAGame):
+
+
+    def initFromEspn(self):
+        """
+
+        """
+        self.retrievePBPFromUrl()
+        self.retrieveBoxScoreFromUrl()
+        self.retrieveMomentsFromUrl()
+
+
+    def retrievePBPFromUrl(self):
+        """
+        Retrieve play-by-play data for game from ESPN URL.
+        """
+        
+        try:
+            pbp = ede.retrievePbpEspn(self.game_id)
+        except ValueError:
+            # need some stuff to spit out error info...
+            print('Failed to retreive play-by-play for game ' + str(gameid))
+            pbp = dict()
+        self.play_by_play = pbp
+
+
+    def retrieveBoxScoreFromUrl(self):
+        """
+        Retrieve box score information for game from ESPN URL.
+        """
+        
+        try:
+            box = ede.retrieveBoxEspn(self.game_id)
+            if box:
+                self.player_stats_adv = box['player_stats']
+                self.team_stats_adv = box['team_stats']
+                self.game_stats = box['game_stats']
+            else:
+                self.player_stats_adv = {}
+                self.team_stats_adv = {}
+                self.game_stats = {}
+        except ValueError:
+            # need some stuff to spit out error info...
+            print('Failed to retreive box score for game ' + str(self.game_id))
+            box = dict()
+
+
+    def retrieveMoments(self):
+        """
+
+        """
+        self.retrieveMomentsFromUrl()
+
+
+    def retrieveMomentsFromUrl(self):
+        """
+
+        """
+        try:
+            moments = ede.retrieveMomEspn(self.game_id)
+        except ValueError:
+            print('Failed to retreive moments for game ' + game_id)
+            moments = ()
+        self.moments = moments
     
 
 

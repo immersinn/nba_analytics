@@ -2,8 +2,8 @@
 import time
 import requests
 
-import numpy as np
-import pandas as pd
+import numpy
+import pandas
 
 from dbinterface_python.dbconns import connectMon
 
@@ -15,6 +15,9 @@ event_id_txt = "eventid="
 game_id_txt = "gameid="
 start_period_txt = "startperiod="
 end_period_txt = "endperiod="
+start_range_txt = "startrange="
+end_range_txt = "endrange="
+range_type_txt = "rangetype="
 
 
 ## Game Moments URL
@@ -27,13 +30,28 @@ def momUrl(event_id, game_id):
 
 
 ## Game PBP URL
-pbp_url_base = "http://stats.nba.com/stats/playbyplay/?startperiod=1&endperiod=10&gameid=0021400637"
+pbp_url_base = "http://stats.nba.com/stats/playbyplay/?"
 def pbpUrl(start_period, end_period, game_id):
     pbp_url = pbp_url_base + \
-    start_period_txt + str(start_period) + '&' + \
-    end_period_txt + str(end_period) + '&' + \
-    game_id_txt + game_id
+              start_period_txt + str(start_period) + '&' + \
+              end_period_txt + str(end_period) + '&' + \
+              game_id_txt + game_id
     return(pbp_url)
+
+
+## Game Box Score
+box_url_base = "http://stats.nba.com/stats/boxscore/?"
+def boxUrl(start_period, end_period, game_id,
+           start_range=0, end_range=0, range_type=0):
+    box_url = box_url_base + \
+              start_period_txt + str(start_period) + '&' + \
+              end_period_txt + str(end_period) + '&' + \
+              start_range_txt + str(start_range) + '&' + \
+              end_range_txt + str(end_range) + '&' + \
+              range_type_txt + str(range_type) + '&' + \
+              game_id_txt + game_id
+    return(box_url)
+    
 
 
 # Helper functions / preprocessing / postprocessing
@@ -54,6 +72,13 @@ def count2Id(num):
     else:
         eid = str(num)
     return(eid)
+
+
+def dataDictFromDf(df):
+    data_dict = {}
+    for h in df.columns:
+        data_dict[h] = list(df[h])
+    return(data_dict)
 
 
 def transformMomentsMDB(raw_data, game_id, event_id):
@@ -124,7 +149,7 @@ def transformMomentsMDB(raw_data, game_id, event_id):
                     player.extend((moments.index(moment,), moment[1],
                                    moment[2], moment[3]))
                     player_moments.append(player)
-        pm_df = pd.DataFrame(player_moments, columns = headers)
+        pm_df = pandas.DataFrame(player_moments, columns = headers)
 
         # Create dict from dataframe
         for h in headers:
@@ -152,18 +177,95 @@ def transformMomentsMDB(raw_data, game_id, event_id):
 
 
 
-# Data Retrieval
+def transformBoxMDB(raw_data):
+    """
+    Takes the JSON file return from the boxscore ESPN Stats page
+    and trims / reformats the data as necessary
+    """
+
+    # Game Summary
+    game_headers_01 = raw_data['resultSets'][0]['headers']
+    game_data_01 = raw_data['resultSets'][0]['rowSet']
+    # Season series
+    game_headers_02 = raw_data['resultSets'][2]['headers']
+    game_data_02 = raw_data['resultSets'][2]['rowSet']
+    # Last meeting
+    game_headers_03 = raw_data['resultSets'][3]['headers']
+    game_data_03 = raw_data['resultSets'][3]['rowSet']
+
+    game_stats = pandas.merge(pandas.DataFrame(game_data_02, columns=game_headers_02),
+                              pandas.DataFrame(game_data_03, columns=game_headers_03))
+
+  
+
+    # Team Stats - Line Score
+    team_headers_01 = raw_data['resultSets'][1]['headers']
+    team_data_01 = [r for r in raw_data['resultSets'][1]['rowSet']]
+    # Team Stats - Team Stats
+    team_headers_02 = raw_data['resultSets'][5]['headers']
+    team_data_02 = [r for r in raw_data['resultSets'][5]['rowSet']]
+    # Team Stats - OtherStats
+    team_headers_03 = raw_data['resultSets'][6]['headers']
+    team_data_03 = [r for r in raw_data['resultSets'][6]['rowSet']]
+    # Team Stats - PlayerTrackTeam
+    team_headers_04 = raw_data['resultSets'][12]['headers']
+    team_data_04 = [r for r in raw_data['resultSets'][12]['rowSet']]
+
+    team_stats = pandas.merge(pandas.DataFrame(team_data_01, columns=team_headers_01),
+                              pandas.DataFrame(team_data_02, columns=team_headers_02))
+    team_stats = pandas.merge(team_stats,
+                              pandas.DataFrame(team_data_03, columns=team_headers_03))
+    team_stats = pandas.merge(team_stats,
+                              pandas.DataFrame(team_data_04, columns=team_headers_04))
+    
+    # Game Stats - Basic
+    player_headers_01 = raw_data['resultSets'][4]['headers']
+    player_data_01 = [r for r in raw_data['resultSets'][4]['rowSet']]
+    # Inactive Players
+    player_headers_02 = raw_data['resultSets'][9]['headers']
+    player_data_02 = [r for r in raw_data['resultSets'][9]['rowSet']]
+    # Game Stats - Adv Player Track
+    player_headers_03 = raw_data['resultSets'][11]['headers']
+    player_data_03 = [r for r in raw_data['resultSets'][11]['rowSet']]
+    # Create player stats DF
+    player_stats = pandas.merge(pandas.DataFrame(player_data_01, columns=player_headers_01),
+                                pandas.DataFrame(player_data_03, columns=player_headers_03))
+    inactive_players = pandas.DataFrame(player_data_02, columns=player_headers_02)
 
 
-def retrievePbpEspn(game_id):
-    pbp_url = pbpUrl(start_period_id, end_period_id, game_id)
-    pbp = requests.get(url)
-    plays = pbp['resultSets'][0]['rowSet']
-    plays = {i : v for i,v in enumerate(plays)}
+    # Create dicts from dataframes
+    game_data_dict = dataDictFromDf(game_stats)
+    team_stats_data_dict = dataDictFromDf(team_stats)
+    player_stats_data_dict = dataDictFromDf(player_stats)
+
+    return({'game_stats' : game_data_dict,
+            'team_stats' : team_stats_data_dict,
+            'player_stats' : player_stats_data_dict})
+
+
+def transformPpbMDB(raw_data):
+    plays = raw_data['resultSets'][0]['rowSet']
+    plays = {str(i) : v for i,v in enumerate(plays)}
     return(plays)
 
 
-def retrieveMomEspn(game_id):
+# Data Retrieval
+
+
+def retrievePbpEspn(game_id, start_period_id=1, end_period_id=10):
+    """
+
+    """
+    url = pbpUrl(start_period_id, end_period_id, game_id)
+    pbp = requests.get(url)
+    if pbp.ok:
+        plays = transformPpbMDB(pbp.json())
+    else:
+        plays = {}
+    return(plays)
+
+
+def retrieveMomEspn(game_id, verbose=False):
     """
     :type game_id: str
     :param game_id: ESPN Game ID for the game for which data is
@@ -194,7 +296,8 @@ def retrieveMomEspn(game_id):
     consecutive_fails = 0
 
     while not stop:
-        print('Attempting event id %s' % count)
+        if count % 75 == 0:
+            print('Attempting event id %s' % count)
         attempt_count = 1
         event_id = count2Id(count)
         url = momUrl(event_id, game_id)
@@ -222,11 +325,25 @@ def retrieveMomEspn(game_id):
         
         time.sleep(3)
 
-    print('fine')
+##        if count > 4:
+##            stop = True
+
+    if verbose:
+        print('fine')
     return(moments)
 
 
+def retrieveBoxEspn(game_id):
+    """
 
+    """
+    url = boxUrl(1, 10, game_id)
+    box = requests.get(url)
+    if box.ok:
+        box_score_dict = transformBoxMDB(box.json())
+    else:
+        box_score_dict = {}
+    return(box_score_dict)
 
 
 
@@ -237,3 +354,4 @@ def main():
     game_id = '0021400637'
     pbp = retrievePbpEspn(game_id)
     moments = retrieveMomEspn(game_id)
+    boxscore = retrieveBoxEspn(game_id)
