@@ -297,24 +297,24 @@ def retrieveMomEspn(game_id, verbose=False):
 
     while not stop:
         if count % 75 == 0:
-            print('Attempting event id %s' % count)
+            print('Attempting event id %s from game %s' % (count, game_id))
         attempt_count = 1
         event_id = count2Id(count)
         url = momUrl(event_id, game_id)
         data_dict = {}
-        while attempt_count < 4 and not data_dict:
+        while attempt_count < 3 and not data_dict:
             response = requests.get(url)
             if response.ok:
                 data_dict = transformMomentsMDB(response.json(),
                                              game_id, event_id)
             else:
                 attempt_count += 1
-                time.sleep(5 + 2 * attempt_count)
+                time.sleep(1 + 2 * attempt_count)
 
         # Cleanup
         count += 1
         if not data_dict:
-            print('Failed to retrieve...')
+            print('Failed to retrieve event %s from game %s' % (event_id, game_id))
             consecutive_fails += 1
         else:
             moments.append(data_dict)
@@ -323,7 +323,7 @@ def retrieveMomEspn(game_id, verbose=False):
         if consecutive_fails > 3:
             stop = True
         
-        time.sleep(3)
+        time.sleep(1)
 
 ##        if count > 4:
 ##            stop = True

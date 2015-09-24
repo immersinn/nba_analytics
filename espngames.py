@@ -216,13 +216,16 @@ class NBAGame():
 class NBAStatsGame(NBAGame):
 
 
-    def initFromEspn(self):
+    def initFromEspn(self, to_init = ['pbp', 'box', 'moments']):
         """
 
         """
-        self.retrievePBPFromUrl()
-        self.retrieveBoxScoreFromUrl()
-        self.retrieveMomentsFromUrl()
+        if 'pbp' in to_init:
+            self.retrievePBPFromUrl()
+        if 'box' in to_init:
+            self.retrieveBoxScoreFromUrl()
+        if 'moments' in to_init:
+            self.retrieveMomentsFromUrl()
 
 
     def retrievePBPFromUrl(self):
@@ -271,11 +274,11 @@ class NBAStatsGame(NBAGame):
         """
 
         """
-        try:
-            moments = ede.retrieveMomEspn(self.game_id)
-        except ValueError:
-            print('Failed to retreive moments for game ' + game_id)
-            moments = ()
+##        try:
+        moments = ede.retrieveMomEspn(self.game_id)
+##        except ValueError:
+##            print('Failed to retreive moments for game ' + self.game_id)
+##            moments = ()
         self.moments = moments
     
 

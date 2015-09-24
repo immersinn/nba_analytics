@@ -32,7 +32,7 @@ def retrieveEspnGameIdsForDay(url):
         game_ids = [gid.strip('nbaGL') for gid in game_ids]
         return(game_ids)
     else:
-        err_msg = scores_page['err']
+        err_msg = page['err']
         if type(err_msg) == str:
             print("Failed to retrieve scores page for %s. Error: %s" %\
                   (date, err_msg))
@@ -80,6 +80,15 @@ def genDateSeq(start_date, end_date):
     return dates
 
 
+def getExistingGameIds():
+    conn = connectMon.MongoConn(db_name='NBASD',
+                                coll_name='Games')
+    results = conn.query(limit = 0,
+                         fields = {'game_id' : True})
+    gids = [r['game_id'] for r in results]
+    return(set(gids))
+
+
 def main():
 
     """
@@ -89,12 +98,14 @@ def main():
 
     example url: url = "http://www.nba.com/gameline/20150209/"
     """
+
+    existing_gids = getExistingGameIds()
  
     which_data_list = ['moments', 'play_by_play',
                        'player_stats_adv', 'team_stats_adv', 'game_stats',
                        'season', 'date']
          
-    start_date = [2014, 10, 25]
+    start_date = [2015, 2, 20]
     end_date = [2015, 6, 20]
     dates = genDateSeq(start_date, end_date)
     root_url = 'http://www.nba.com/gameline/'
@@ -113,22 +124,25 @@ def main():
         game_ids = retrieveEspnGameIdsForDay(root_url + date)
 
         for game_id in game_ids:
-            print("Game ID: %s" % game_id)
-            game = espngames.NBAStatsGame(game_id,
-                                          season = season,
-                                          date = date)
-            game.initFromEspn()
-            game_info_dict = game.dataToDict(which_data = which_data_list)
+            if game_id not in existing_gids:
+                print("Game ID: %s" % game_id)
+                game = espngames.NBAStatsGame(game_id,
+                                              season = season,
+                                              date = date)
+                game.initFromEspn(to_init = ['box', 'pbp'])
+                game_info_dict = game.dataToDict(which_data = which_data_list)
 
-            try:
-                moments_info_list = game_info_dict.pop('moments')
-                if moments_info_list:
-                    moments.insert(moments_info_list)
-                else:
-                    print('Empty moments data for game %s' % game_id)
-            except KeyError:
-                print('No moments data for game %s' % game_id)
-            games.insert(game_info_dict)
+                try:
+                    moments_info_list = game_info_dict.pop('moments')
+                    if moments_info_list:
+                        moments.insert(moments_info_list)
+                    else:
+                        print('Empty moments data for game %s' % game_id)
+                except KeyError:
+                    print('No moments data for game %s' % game_id)
+                games.insert(game_info_dict)
+            else:
+                print('Game %s is already in the database.' % game_id)
 
 
 if __name__=="__main__":
