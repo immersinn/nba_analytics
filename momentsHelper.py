@@ -8,31 +8,33 @@ import pandas
 ##################################################
 
 
-def overlapTimes(game_info):
+def overlapTimes(moments_info):
     # Overlapping time stamps
     s_indx = numpy.where(moments_info.columns == 'StartTime')[0][0]
     e_indx = numpy.where(moments_info.columns == 'EndTime')[0][0]
     end_start_diff = [a - b for (a, b) in \
-                      zip(game_info.ix[0:(game_info.shape[0]-2), e_indx], 
-                          game_info.ix[1:(game_info.shape[0]-1), s_indx])]
-    overlap = [(e, d < 0) for (e, d) in zip(game_info.ix[1:game_info.shape[0], 0], end_start_diff)]
-    overlap.insert(0, (game_info.ix[0, 0], True))
+                      zip(moments_info.ix[0:(moments_info.shape[0]-2), e_indx], 
+                          moments_info.ix[1:(moments_info.shape[0]-1), s_indx])]
+    overlap = [(e, d < 0) for (e, d) in zip(moments_info.ix[1:moments_info.shape[0], 0],
+                                            end_start_diff)]
+    overlap.insert(0, (moments_info.ix[0, 0], True))
     overlap = pandas.DataFrame(data = overlap,
                                columns = ['EventId', 'Overlap'])
     return(overlap)
 
 
-def samePlayers(game_info):
+def samePlayers(moments_info):
     # Same player ids
-    same_players = [(game_info.EventId[i], list(game_info.PlayerIds[i]) == list(game_info.PlayerIds[i-1])) \
-                    for i in range(1, game_info.shape[0])]
-    same_players.insert(0, (game_info.EventId[0], True))
+    same_players = [(moments_info.EventId[i],
+                     list(moments_info.PlayerIds[i]) == list(moments_info.PlayerIds[i-1])) \
+                    for i in range(1, moments_info.shape[0])]
+    same_players.insert(0, (moments_info.EventId[0], True))
     same_players = pandas.DataFrame(data = same_players,
                                     columns = ['EventId', 'SamePlayers'])
     return(same_players)
 
 
-def defineSegments(game_info):
+def defineSegments(moments_info):
     # Define Segments
     segment_criteria = 'Player'
     seg_count = 0
@@ -41,11 +43,11 @@ def defineSegments(game_info):
         t_indx = numpy.where(moments_info.columns == 'Overlap')[0][0]
         p_indx = numpy.where(moments_info.columns == 'SamePlayers')[0][0]
         seg_flag = [a & b for (a, b) in \
-                          zip(game_info.ix[1:(game_info.shape[0]-1), t_indx], 
-                              game_info.ix[1:(game_info.shape[0]-1), p_indx])]
+                          zip(moments_info.ix[1:(moments_info.shape[0]-1), t_indx], 
+                              moments_info.ix[1:(moments_info.shape[0]-1), p_indx])]
     elif segment_criteria == 'Player':
         p_indx = numpy.where(moments_info.columns == 'SamePlayers')[0][0]
-        seg_flag = [a for a in game_info.ix[1:(game_info.shape[0]-1), p_indx]]
+        seg_flag = [a for a in moments_info.ix[1:(moments_info.shape[0]-1), p_indx]]
 
     seg_flag.insert(0, True)
     segments = [0]
@@ -53,25 +55,25 @@ def defineSegments(game_info):
         if not i:
             seg_count += 1
         segments.append(seg_count)
-    segments = pandas.DataFrame(data = zip(game_info.EventId, segments),
+    segments = pandas.DataFrame(data = zip(moments_info.EventId, segments),
                                 columns = ['EventId', 'Segment'])
     return(segments)
     
 
-def definePeriods(game_info, main_key = 'EventId', dtype = 'game_info'):
+def definePeriods(moments_info, main_key = 'EventId', dtype = 'moments'):
     # Define Quarters
-    if dtype == 'game_info':
+    if dtype == 'moments':
         s_indx = numpy.where(moments_info.columns == 'StartTime')[0][0]
         e_indx = numpy.where(moments_info.columns == 'EndTime')[0][0]
         qua_flag = [a < b and a < 20. and c > 670 for (a, b, c) in \
-                          zip(game_info.ix[1:(game_info.shape[0]-2), e_indx], 
-                              game_info.ix[2:(game_info.shape[0]-1), e_indx],
-                              game_info.ix[2:(game_info.shape[0]-1), s_indx])]
+                          zip(moments_info.ix[1:(moments_info.shape[0]-2), e_indx], 
+                              moments_info.ix[2:(moments_info.shape[0]-1), e_indx],
+                              moments_info.ix[2:(moments_info.shape[0]-1), s_indx])]
     elif dtype == 'pbp':
-        c_indx = numpy.where(game_info.columns == 'game_clock')[0][0]
+        c_indx = numpy.where(moments_info.columns == 'game_clock')[0][0]
         qua_flag = [a < b and a < 20. and b > 700 for (a, b) in \
-                          zip(game_info.ix[1:(game_info.shape[0] - 2), c_indx], 
-                              game_info.ix[2:(game_info.shape[0] - 1), c_indx])]
+                          zip(moments_info.ix[1:(moments_info.shape[0] - 2), c_indx], 
+                              moments_info.ix[2:(moments_info.shape[0] - 1), c_indx])]
     qua_flag.insert(0, False)
     last = numpy.where(qua_flag)[0]
 
@@ -81,7 +83,7 @@ def definePeriods(game_info, main_key = 'EventId', dtype = 'game_info'):
     # tuned enough, so we want to flag anything at
     # the moment.
     if len(last) == 3:    
-        quarters = numpy.repeat(0, game_info.shape[0])
+        quarters = numpy.repeat(0, moments_info.shape[0])
         start = 0
         for q, row in enumerate(last):
             quarters[start:row+1] = q + 1
@@ -91,7 +93,7 @@ def definePeriods(game_info, main_key = 'EventId', dtype = 'game_info'):
         err_msg = 'Incorrect number of quarters; possible overtime.'
         raise AttributeError, err_msg
 
-    quarters = pandas.DataFrame(data = zip(game_info[main_key], quarters),
+    quarters = pandas.DataFrame(data = zip(moments_info[main_key], quarters),
                                 columns = [main_key, 'Quarter'])
     return(quarters)
 
@@ -127,8 +129,11 @@ def preprocessSegments(moments):
     """
 
     """
+    print('preprocessing Moments')
     moments_info = preprocessMoments(moments)
+    print('Merging segments')
     segments_info = mergeSegments(moments_info)
+    print('Cleaning segments')
     segments_info = cleanSegments(segments_info)
 
     return(segments_info)
@@ -237,14 +242,13 @@ def mergeSegments(moments_info):
     timestamps = set()
     for s in numpy.unique(moments_info.Segment):
         seg_info, timestamps = mergeSegment(moments_info[moments_info.Segment==s],
-                                            timestamps,
-                                            clean)
+                                            timestamps)
         if seg_info['MomentsData'].shape[0] > 0:
             segments_info[s] = seg_info
     return(segments_info)
 
 
-def mergeSegment(seg, timestamps, clean):
+def mergeSegment(seg, timestamps):
     """
     ['Segment', 'Quarter', 'EventIds', 'PlayerIds', 'StartTime', 'EndTime', 'MomentsData']
     """
@@ -281,10 +285,7 @@ def mergeSegment(seg, timestamps, clean):
 
             # Update total set of (Quarter, Timestamp) pairs
             timestamps.update(new_stamps)
-            
-    if clean:
-        seg_moms = cleanSegment(seg_moms)
-        
+    
     start = seg_moms.game_clock[0]
     end = seg_moms.game_clock.tolist()[-1]
     
@@ -312,6 +313,8 @@ def cleanMoments(moments_info):
     keep = []
     # k_t = True ???
     for k in range(moments_info.shape[0]):
+##        p_indx = numpy.where(moments_info.columns == 'PlayerIds')[0][0]
+##        m_indx = numpy.where(moments_info.columns == 'MomentData')[0][0]
         p = moments_info.PlayerIds[k]
         m = moments_info.MomentData[k].copy()
         p, m, keep = cleanMoment(p, m, keep)
@@ -330,6 +333,8 @@ def cleanSegments(segments_info):
         s = segment['MomentsData']
         s = cleanSegment(s)
         segment['MomentsData'] = s
+        segment['StartTime'] = segment['MomentsData'].game_clock[0]
+        segment['EndTime'] = segment['MomentsData'].game_clock.tolist()[-1]
         segments_info[k] = segment
     return(segments_info)
 
@@ -455,7 +460,7 @@ def removeRollbacks(segment):
     while i > 0:
         ior = jumps[i]
         jumps.remove(ior)
-        por = s.game_clock[ball_inds[ior]]
+        por = segment.game_clock[ball_inds[ior]]
         t = -999
         ind = ior
         while t < por:

@@ -1,6 +1,32 @@
 
 import re
 import pandas
+from momentsHelper import definePeriods
+
+
+HEADER = ["GAME_ID",
+          "EVENTNUM",
+          "EVENTMSGTYPE",
+          "EVENTMSGACTIONTYPE",
+          "PERIOD",
+          "WCTIMESTRING",
+          "PCTIMESTRING",
+          "HOMEDESCRIPTION",
+          "NEUTRALDESCRIPTION",
+          "VISITORDESCRIPTION",
+          "SCORE",
+          "SCOREMARGIN"]
+
+EVENTS_LIST = ['pass',
+               'steal',
+               'rebound',
+               'block',
+               'foul',
+               'shot',
+               'turnover',
+               'sub',
+               'free_throw',
+               'timeout']
 
 
 def preprocessEvents(pbp):
@@ -8,22 +34,21 @@ def preprocessEvents(pbp):
 
     """
     
-    pbp['play_by_play'] = pbpHelper.pbpDict2Df(pbp['play_by_play'])
-    events = pbpEventsExtractor(pbp)
+    play_by_play = pbpDict2Df(pbp['play_by_play'])
+    player_info = prepPlayerInfo(pbp['player_info'])
+    events = pbpEventsExtractor(play_by_play, player_info)
+    events = addGameClock(events)
+    events = addQuarters(events)
 
     return(events)
 
 
-def pbpEventsExtractor(pbp):
+def pbpEventsExtractor(play_by_play, player_info,
+                       el = EVENTS_LIST):
     """
     Extract all event types from pbp.
     Return as dataframe with associated pbp timestamp.
     """
-
-    #
-    player_info = prepPlayerInfo(pbp)
-    play_by_play = pbp['play_by_play']
-
     
     # Initilize variables
     events = pandas.DataFrame(data = [(eid, t) for (eid, t) in \
@@ -38,35 +63,25 @@ def pbpEventsExtractor(pbp):
         if t == 'away':
             evs = play_by_play.VISITORDESCRIPTION
         # Iterate over event types
-        for ev_type in EVENTS_LIST:
+        for ev_type in el:
             df = eventFromPbp(evs, t, ev_type)
             events = events.merge(df)
         # Determine player
         if player_info:
             df = playersFromEvents(evs, t, player_info)
             events = events.merge(df)
-
-    # Add game clock info, quarters
-    pc = events.PlayClock
-    t = [(p.split(':')[0], p.split(':')[1]) for p in pc]
-    times = pandas.DataFrame(data = zip(events.Index,
-                                        [60 * int(m) + int(s) for (m, s) in t]),
-                             columns = ['Index', 'game_clock'])
-    events = events.merge(times)
-    qrs = definePeriods(events, main_key = 'Index', dtype = 'pbp')
-    events = pandas.merge(events, qrs)
     
     return(events)
 
 
-def prepPlayerInfo(pbp):
+def prepPlayerInfo(pi):
     """
     Lots to do here:
         - need to include home / away info for player lookups
         - the 
     """
 
-    pi = pbp['player_info']
+##    pi = pbp['player_info']
     pi['PLAYER_NAME']
     pbp_name_ids = {n : \
                     {'pid' : i,
@@ -88,19 +103,24 @@ def eventFromPbp(events, t, ev_type):
     if ev_type == 'pass':
         pat = re.compile(r'Pass|PASS')
     elif ev_type == 'steal':
-        pat = re.compile(r' STEAL ')
+        pat = re.compile(r'STEAL|Steal')
     elif ev_type == 'rebound':
-        pat = re.compile(r' REBOUND ')
+        pat = re.compile(r'REBOUND|Rebound')
     elif ev_type == 'block':
         pat = re.compile(r' BLOCK ')
     elif ev_type == 'foul':
-        pat = re.compile(r'FOUL')
+        pat = re.compile(r'FOUL|Foul')
     elif ev_type == 'shot':
-        pat = re.compile(r' Shot | Dunk | Layup ')
+        pat = re.compile(r'Shot|Dunk|Layup')
     elif ev_type == 'turnover':
         pat = re.compile(r'Turnover')
     elif ev_type == 'sub':
         pat = re.compile(r'SUB:')
+    elif ev_type == 'free_throw':
+##        pat = re.compile(r'Free Throw')
+        pat = re.compile(r'Free Throw [1-3] of [1-3]')
+    elif ev_type == 'timeout':
+        pat = re.compile(r'Timeout')
         
     # Find which events are the type indicated
     event_indicator = []
@@ -148,6 +168,22 @@ def playersFromEvents(events, team, player_info):
     return(player_events)
 
 
+def addGameClock(events):
+    # Add game clock info, quarters
+    pc = events.PlayClock
+    t = [(p.split(':')[0], p.split(':')[1]) for p in pc]
+    times = pandas.DataFrame(data = zip(events.Index,
+                                        [60 * int(m) + int(s) for (m, s) in t]),
+                             columns = ['Index', 'game_clock'])
+    events = events.merge(times)
+    return(events)
+
+
+def addQuarters(events):
+    qrs = definePeriods(events, main_key = 'Index', dtype = 'pbp')
+    events = pandas.merge(events, qrs)
+    return(events)
+
 
 def pbpDict2Df(pbp):
     # Build the play-by-play DataFrame from the pbp dictionary
@@ -159,5 +195,5 @@ def pbpDict2Df(pbp):
         for i in sorted([int(k) for k in pbp.keys()]):
                 p_ord.append(pbp[str(i)])
     pbp = pandas.DataFrame(p_ord,
-                           columns=header)
+                           columns=HEADER)
     return(pbp)

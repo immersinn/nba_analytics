@@ -1,29 +1,6 @@
 
 import pickle
-
-
-header = ["GAME_ID",
-          "EVENTNUM",
-          "EVENTMSGTYPE",
-          "EVENTMSGACTIONTYPE",
-          "PERIOD",
-          "WCTIMESTRING",
-          "PCTIMESTRING",
-          "HOMEDESCRIPTION",
-          "NEUTRALDESCRIPTION",
-          "VISITORDESCRIPTION",
-          "SCORE",
-          "SCOREMARGIN"]
-
-
-EVENTS_LIST = ['pass',
-               'steal',
-               'rebound',
-               'block',
-               'foul',
-               'shot',
-               'turnover',
-               'sub']
+from pandas import read_pickle
 
 
 def loadFiles():
@@ -33,7 +10,7 @@ def loadFiles():
         with open('/home/immersinn/Data/DataDumps/NBA/momentsSubset.pkl', 'r') as f1:
             moments = pickle.load(f1)
     except TypeError:
-        moments = pandas.read_pickle('/home/immersinn/Data/DataDumps/NBA/momentsSubset.pkl')
+        moments = read_pickle('/home/immersinn/Data/DataDumps/NBA/momentsSubset.pkl')
             
     with open('/home/immersinn/Data/DataDumps/NBA/pbpSubset.pkl', 'r') as f1:
         pbp = pickle.load(f1)
