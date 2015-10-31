@@ -184,53 +184,56 @@ def transformBoxMDB(raw_data):
     """
 
     # Game Summary
-    game_headers_01 = raw_data['resultSets'][0]['headers']
-    game_data_01 = raw_data['resultSets'][0]['rowSet']
+    game_data_01 = pandas.DataFrame(data = raw_data['resultSets'][0]['rowSet'],
+                                    columns = raw_data['resultSets'][0]['headers'])
     # Season series
-    game_headers_02 = raw_data['resultSets'][2]['headers']
-    game_data_02 = raw_data['resultSets'][2]['rowSet']
+    game_data_02 = pandas.DataFrame(data = raw_data['resultSets'][2]['rowSet'],
+                                    columns = raw_data['resultSets'][2]['headers'])
     # Last meeting
-    game_headers_03 = raw_data['resultSets'][3]['headers']
-    game_data_03 = raw_data['resultSets'][3]['rowSet']
+    game_data_03 = pandas.DataFrame(data = raw_data['resultSets'][3]['rowSet'],
+                                    columns = raw_data['resultSets'][3]['headers'])
 
-    game_stats = pandas.merge(pandas.DataFrame(game_data_02, columns=game_headers_02),
-                              pandas.DataFrame(game_data_03, columns=game_headers_03))
+    game_stats = pandas.merge(game_data_02, game_data_03)
 
   
 
     # Team Stats - Line Score
-    team_headers_01 = raw_data['resultSets'][1]['headers']
-    team_data_01 = [r for r in raw_data['resultSets'][1]['rowSet']]
+    team_data_01 = pandas.DataFrame(data = raw_data['resultSets'][1]['rowSet'],
+                                    columns = raw_data['resultSets'][1]['headers'])
     # Team Stats - Team Stats
-    team_headers_02 = raw_data['resultSets'][5]['headers']
-    team_data_02 = [r for r in raw_data['resultSets'][5]['rowSet']]
+    team_data_02 = pandas.DataFrame(data = raw_data['resultSets'][5]['rowSet'],
+                                columns = raw_data['resultSets'][5]['headers'])
     # Team Stats - OtherStats
-    team_headers_03 = raw_data['resultSets'][6]['headers']
-    team_data_03 = [r for r in raw_data['resultSets'][6]['rowSet']]
+    team_data_03 = pandas.DataFrame(data = raw_data['resultSets'][6]['rowSet'],
+                                    columns = raw_data['resultSets'][6]['headers'])
     # Team Stats - PlayerTrackTeam
-    team_headers_04 = raw_data['resultSets'][12]['headers']
-    team_data_04 = [r for r in raw_data['resultSets'][12]['rowSet']]
+    team_data_04 = pandas.DataFrame(data = raw_data['resultSets'][12]['rowSet'],
+                                    columns = raw_data['resultSets'][12]['headers'])
 
-    team_stats = pandas.merge(pandas.DataFrame(team_data_01, columns=team_headers_01),
-                              pandas.DataFrame(team_data_02, columns=team_headers_02))
+    team_stats = pandas.merge(team_data_01,
+                              team_data_02,
+                              how = 'left')
     team_stats = pandas.merge(team_stats,
-                              pandas.DataFrame(team_data_03, columns=team_headers_03))
+                              team_data_03,
+                              how = 'left')
     team_stats = pandas.merge(team_stats,
-                              pandas.DataFrame(team_data_04, columns=team_headers_04))
+                              team_data_04,
+                              how = 'left')
     
     # Game Stats - Basic
-    player_headers_01 = raw_data['resultSets'][4]['headers']
-    player_data_01 = [r for r in raw_data['resultSets'][4]['rowSet']]
+    player_data_01 = pandas.DataFrame(data = raw_data['resultSets'][4]['rowSet'],
+                                      columns = raw_data['resultSets'][4]['headers'])
     # Inactive Players
-    player_headers_02 = raw_data['resultSets'][9]['headers']
-    player_data_02 = [r for r in raw_data['resultSets'][9]['rowSet']]
+    player_data_02 = pandas.DataFrame(data = raw_data['resultSets'][9]['rowSet'],
+                                      columns = raw_data['resultSets'][9]['headers'])
     # Game Stats - Adv Player Track
-    player_headers_03 = raw_data['resultSets'][11]['headers']
-    player_data_03 = [r for r in raw_data['resultSets'][11]['rowSet']]
+    player_data_03 = pandas.DataFrame(data = raw_data['resultSets'][11]['rowSet'],
+                                      columns = raw_data['resultSets'][11]['headers'])
     # Create player stats DF
-    player_stats = pandas.merge(pandas.DataFrame(player_data_01, columns=player_headers_01),
-                                pandas.DataFrame(player_data_03, columns=player_headers_03))
-    inactive_players = pandas.DataFrame(player_data_02, columns=player_headers_02)
+    player_stats = pandas.merge(player_data_03,
+                                player_data_01,
+                                how = 'left')
+    inactive_players = player_data_02
 
 
     # Create dicts from dataframes
