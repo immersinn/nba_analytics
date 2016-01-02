@@ -1,9 +1,9 @@
 
-
+import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle, Arc
 
 # Function to draw the basketball court lines
-def draw_court(ax=None, color="gray", lw=1, zorder=0):
+def drawCourt(ax=None, color="gray", lw=1, zorder=0):
     
     if ax is None:
         ax = plt.gca()
@@ -80,30 +80,92 @@ def draw_court(ax=None, color="gray", lw=1, zorder=0):
     for element in court_elements:
         ax.add_patch(element)
 
-    return ax
+    return(ax)
 
 
-def standardPosPlot(pos_df, draw_court=False):
+def standardPosPlot(pos_df,
+                    pids = [],
+                    draw_court=False,
+                    colors = plt.cm.Blues):
+    
+    # Init pids, filter data
+    if not pids:
+        pass
+    else:
+        keep = pos_df.index[[p in pids for p in pos_df.player_id]]
+        pos_df = pos_df.ix[keep]
 
     # Initialize figure
     plt.figure(figsize=(15, 11.5))
     # Plot the movemnts as scatter plot
     # using a colormap to show change in game clock
-    plt.scatter(pos_df.x_loc, - pos_df.y_loc,
-                c = pos_df.game_clock,
-                cmap = plt.cm.Blues, zorder = 1)
+##    plt.scatter(pos_df.x_loc, - pos_df.y_loc,
+##                c = pos_df.game_clock,
+##                cmap = colors, zorder = 1)
+    posScatter(pos_df, colors)
     # Darker colors represent moments earlier on in the game
     cbar = plt.colorbar(orientation="horizontal")
     # invert the colorbar to have higher numbers on the left
     cbar.ax.invert_xaxis()
     # (Optional) Draw court image
     if draw_court:
-        draw_court()
+        drawCourt()
     # Set axis limits
     plt.xlim(0, 101)
     plt.ylim(-51, 0)
     # Dram plot
     plt.show()
+
+
+def modPosPlot(pos_df,
+               pids = [],
+               draw_court=False,
+               bars = 'ball'):
+
+    
+    CLIST = [plt.cm.Blues,
+             plt.cm.Greens,
+             plt.cm.Oranges,
+             plt.cm.Purples]
+
+    # Init pids, filter data
+    if not pids:
+        pids = set(pos_df.player_id)
+
+    # Initialize figure
+    plt.figure(figsize=(15, 11.5))
+
+    # Color for each player
+    for i, pid in enumerate(pids):
+        keep = pos_df.index[[p == pid for p in pos_df.player_id]]
+        p_df = pos_df.ix[keep]
+        posScatter(p_df, CLIST[i % len(CLIST)])
+        if bars == 'ball':
+            if pid == -1:
+                # Darker colors represent moments earlier on in the game
+                cbar = plt.colorbar(orientation="horizontal")
+                # invert the colorbar to have higher numbers on the left
+                cbar.ax.invert_xaxis()
+        elif bars == 'all':
+            # Darker colors represent moments earlier on in the game
+            cbar = plt.colorbar(orientation="horizontal")
+            # invert the colorbar to have higher numbers on the left
+            cbar.ax.invert_xaxis()
+    # (Optional) Draw court image
+    if draw_court:
+        drawCourt()
+    # Set axis limits
+    plt.xlim(0, 101)
+    plt.ylim(-51, 0)
+    # Dram plot
+    plt.show()
+    
+
+
+def posScatter(pos_df, colors):
+    plt.scatter(pos_df.x_loc, - pos_df.y_loc,
+                c = pos_df.game_clock,
+                cmap = colors, zorder = 1)
 
 
 def distancesPlot():

@@ -23,6 +23,7 @@ EVENTS_LIST = ['pass',
                'block',
                'foul',
                'shot',
+               'make',
                'turnover',
                'sub',
                'free_throw',
@@ -54,7 +55,7 @@ def pbpEventsExtractor(play_by_play, player_info,
     events = pandas.DataFrame(data = [(eid, t) for (eid, t) in \
                                       zip(range(play_by_play.shape[0]),
                                           play_by_play.PCTIMESTRING)],
-                              columns = ['Index', 'PlayClock'])
+                              columns = ['Index', 'PCTIMESTRING'])
     
     # Iterate over teams
     for t in ['home', 'away']:
@@ -70,6 +71,23 @@ def pbpEventsExtractor(play_by_play, player_info,
         if player_info:
             df = playersFromEvents(evs, t, player_info)
             events = events.merge(df)
+
+    # Extract event text
+    h_txt = play_by_play.HOMEDESCRIPTION
+    a_txt = play_by_play.VISITORDESCRIPTION
+    def mergeTexts(h, v):
+        if not v:
+            return(h)
+        elif not h:
+            return(v)
+        else:
+            return('; '.join([h,v]))
+    events_msg = [(eid, mergeTexts(h, v)) for (eid, h, v) in \
+                  zip(range(len(events)), h_txt, a_txt)]
+    df = pandas.DataFrame(data = events_msg,
+                          columns = ['Index', 'EventMsg'])
+    events = events.merge(df)
+                          
     
     return(events)
 
@@ -90,6 +108,9 @@ def prepPlayerInfo(pi):
                      } for (n, i) in zip(pi['PLAYER_NAME'], pi['PLAYER_ID'])}
     return(pbp_name_ids)
 
+
+# ADD IN STRING SPECIFYING WHAT HAPPENED (CONCAT DESCRIPS)
+# ADD IN MADE / MISSED (2 DISTINCT EVENT TYPES?? OR NEW MADE EVENT??)
 
 
 def eventFromPbp(events, t, ev_type):
@@ -119,6 +140,8 @@ def eventFromPbp(events, t, ev_type):
     elif ev_type == 'free_throw':
 ##        pat = re.compile(r'Free Throw')
         pat = re.compile(r'Free Throw [1-3] of [1-3]')
+    elif ev_type == 'make':
+        pat = re.compile(r'PTS|Pts|pts')
     elif ev_type == 'timeout':
         pat = re.compile(r'Timeout')
         
@@ -170,13 +193,19 @@ def playersFromEvents(events, team, player_info):
 
 def addGameClock(events):
     # Add game clock info, quarters
-    pc = events.PlayClock
-    t = [(p.split(':')[0], p.split(':')[1]) for p in pc]
+    pc = events.PCTIMESTRING
     times = pandas.DataFrame(data = zip(events.Index,
-                                        [60 * int(m) + int(s) for (m, s) in t]),
+                                        time2Gc(pc)),
                              columns = ['Index', 'game_clock'])
+                             #  [60 * int(m) + int(s) for (m, s) in t]),
     events = events.merge(times)
     return(events)
+
+
+def time2Gc(time):
+    t = [p.split(':') for p in time]
+    gc = [60 * int(m[0]) + int(m[1]) for m in t]
+    return(gc)
 
 
 def addQuarters(events):
@@ -196,4 +225,6 @@ def pbpDict2Df(pbp):
                 p_ord.append(pbp[str(i)])
     pbp = pandas.DataFrame(p_ord,
                            columns=HEADER)
+    
     return(pbp)
+
