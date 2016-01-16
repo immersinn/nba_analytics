@@ -14,6 +14,8 @@ Format of a description entry:
 
 """
 
+
+
 def getEventPlayer(event_description,
                    player_names=[],
                    team_names=[],
@@ -96,9 +98,13 @@ def detEventType(event_line):
         5 --> foul turnover
         11 --> shot clock
     6 --> (offensive, shooting, etc) foul
+    7 --> Violation
+        2 --> Defensive Goaltending
+        5 --> Kicked Ball
     8 --> sub
     9 --> Full timeout
     10 --> jump ball
+    11 --> ???
     12 --> quarter start
     13 --> quarter end / game end
     """
@@ -116,7 +122,7 @@ def detEventType(event_line):
     elif event_line.EVENTMSGTYPE == 6:
         state = 'Foul'
     elif event_line.EVENTMSGTYPE == 7:
-        state = 'UKWN'
+        state = 'Violation'
     elif event_line.EVENTMSGTYPE == 8:
         state = 'Sub'
     elif event_line.EVENTMSGTYPE == 9:
@@ -132,40 +138,8 @@ def detEventType(event_line):
     else:
         state = event_line.EVENTMSGTYPE
     return(state)
-    
 
-
-def evalTurnover():
-    pass
-
-
-
-def preprocessPbp(pbp):
-    pbp = pbpHelper.pbpDict2Df(pbp)
-    pbp = addIndex(pbp)
-    pbp = addGameClock(pbp)
-    return(pbp)
-
-
-def addIndex(pbp):
-    ind = pandas.DataFrame(data = range(pbp.shape[0]),
-                           columns = ['Index'])
-    pbp = pbp.join(ind)
-    return(pbp)
-
-
-def addGameClock(pbp):
-    gc = [time2Gc(t) for t in pbp.PCTIMESTRING]
-    gc = pandas.DataFrame(data = zip(pbp.Index, gc),
-                          columns = ['Index', 'game_clock'])
-    pbp = pbp.merge(gc)
-    return(pbp)
-
-
-def time2Gc(time):
-    gc = 60 * int(time.split(':')[0]) + int(time.split(':')[1])
-    return(gc)
-        
+       
 
 
 ####################

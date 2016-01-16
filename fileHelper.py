@@ -2,17 +2,19 @@
 import pickle
 from pandas import read_pickle
 
+from dataFieldNames import *
+
 
 def loadFiles():
     # [u'0041400161', u'0041400163', u'0041400164', u'0021400648']
 
     try:
-        with open('/home/immersinn/Data/DataDumps/NBA/momentsSubset.pkl', 'r') as f1:
+        with open('/home/immersinn/Data/DataDumps/NBA/momentsSubset02.pkl', 'r') as f1:
             moments = pickle.load(f1)
     except TypeError:
         moments = read_pickle('/home/immersinn/Data/DataDumps/NBA/momentsSubset.pkl')
             
-    with open('/home/immersinn/Data/DataDumps/NBA/pbpSubset.pkl', 'r') as f1:
+    with open('/home/immersinn/Data/DataDumps/NBA/pbpSubset02.pkl', 'r') as f1:
         pbp = pickle.load(f1)
 
     return(moments, pbp)
@@ -29,18 +31,12 @@ def grabGameFromLoad(gid = '0041400161'):
     mom_list, pbp_list = loadFiles()
 
     # Preprocess
-##    mom_list = [{'game_id' : g,
-##                 'event_id' : e,
-##                 'data' : d} \
-##                for (g, e, d) in mom_list]
-    pbp_list = [{'game_id' : g['game_id'],
-                 'play_by_play' : g['play_by_play'],
-                 'player_info' : g['player_stats_adv']} \
-                for g in pbp_list]
+    ## None...pass raw out..
+
 
     # Retrieve data for specified game
-    moments = [(g, e, d) for (g, e, d) in mom_list if g == gid]
-    pbp = [p for p in pbp_list if p['game_id'] == gid][0]   
+    moments = [m for m in mom_list if m['game_id'] == gid]
+    pbp = [p for p in pbp_list if p['game_id'] == gid] 
 
     return(moments, pbp)
 

@@ -1,0 +1,73 @@
+* Review what is currently stored in MongoDB, what was exported to test files for developing code
+	* Is there ahything else currently in the file that would be desired to aid the process?
+	* Is there anything else currently stored that would be desired to access?
+	* Is there anything else avaiable on the NBA Stats site that would be desired?
+
+
+* Add functionality in GameEvents class
+	* what additional information about the game, players needs to be stored to access later for analysis?
+		* player names
+		* player ids
+		* game id
+		* team names
+		* other meta?
+	* preprocess
+		* convert pbp to data frame (is this necessary?? Do we gain anything given later steps?)
+		* other?
+	* _create_events
+		* this splits the overall pbp / events into subsets by player substitutions / quarters
+		* each segment is of class 'Events'
+			* has quarter, start time, end time, player list
+			* Events instances also contain info about overall game for reference
+		* GameEvents stores the associated Events instances such that each Events instance is easily accessible by an index
+	*_players_on_court
+		* determines which players are on the court for each entry in the pbp
+		* can use starting players in game as initializer, and substitutions to keep track (substitutions can occur between periods; is this in the pbp??)
+
+* Add functionality in Events class
+	* preprocess --> does not need to do anything currently
+	* __init__ should set / determine appropriate meta-data
+		* Start GC
+		* End GC
+		* Quarter
+		* Players
+	* how should individual events be store here?  what info does each need?
+
+* Determine if Event class needed, and what functionality required
+	* currently just a wierd instance of 'dict'
+
+* Add functionality to Moment class
+	* preprocess
+		* not sure if anything needs to be done here
+	* __init__
+		* assign game, player data
+		* assign data about moment
+	* code for detecting various things
+		* hooks into the various components of 'momentsHelper' that correspond to individual moments
+			* player - player and player - ball distances
+			* ball posession
+		* may also want basic visualization hooks into the game_viz_primr stuff
+			* not a high priority
+
+* Add functionality to Segment class
+	* review __init__ and see if reasonable
+	* functionality to access meta-info
+	* extractTransitions
+		* port code from 'Match Ball Transitions to Posession Gaps'
+			* this likely goes in segmentsHelper.py, but up for consideration
+		* nice wrapper around results
+		* needs to conform to what 'Segments.extractTransitions()' expects
+
+* eventsHelper functionality
+	* determine which methods should be associated with GameEvents and which methods should be associated with Events
+	* review methods, and add wrappers where necessary (either on the NBAGame side or this side) to have new classes utilize current functionality
+
+* momentsHelper functionality
+	* determine which methods should be associated with GameMoments and which methods should be associated with Moments
+	* review methods, and add wrappers where necessary (either on the NBAGame side or this side) to have new classes utilize current functionality
+
+* segmentsHelper functionality
+	* determine which methods should be associated with GameSegments and which methods should be associated with Segments
+	* review methods, and add wrappers where necessary (either on the NBAGame side or this side) to have new classes utilize current functionality
+	* add in code from the 'Match Ball Transitions to Posession Gaps' if applicable / desirable
+

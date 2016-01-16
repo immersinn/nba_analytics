@@ -4,7 +4,6 @@ import pandas
 from nba_analytics import fileHelper
 from nba_analytics import momentsHelper
 from nba_analytics import pbpHelper
-from nba_analytics import pbpParser
 
 
 class ParsedGamePrep:
@@ -19,9 +18,10 @@ class ParsedGamePrep:
 
     def defaultFileLoad(self,):
         moments, pbp = fileHelper.grabGameFromLoad()
+        pbp = pbp[0]
         self.moments = moments
         
-        self.pi = pbp['player_info']
+        self.pi = pbp['player_stats_adv']
         # How can this be automated from game data?
         # Should be able to pull from pbp
         self.team_names = ['Clippers', 'Spurs', 'CLIPPERS', 'SPURS']
@@ -55,7 +55,7 @@ class ParsedGamePrep:
 
 
     def preprocEvents(self,):
-        self.esf = pbpParser.EventsFinder(self.pbp,
+        self.esf = pbpHelper.EventsFinder(self.pbp,
                                           self.pbp_names,
                                           self.team_names,
                                         self.pbp2id)
@@ -84,7 +84,7 @@ def addIndex(pbp):
 
 
 def addGameClock(pbp):
-    gc = [pbpParser.time2Gc(t) for t in pbp.PCTIMESTRING]
+    gc = [pbpHelper.time2Gc(t) for t in pbp.PCTIMESTRING]
     gc = pandas.DataFrame(data = zip(pbp.Index, gc),
                           columns = ['Index', 'game_clock'])
     pbp = pbp.merge(gc)
