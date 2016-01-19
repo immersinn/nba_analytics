@@ -111,15 +111,14 @@ class NBAGameAnalysis(NBAGameBasic):
 
 class GameSubpartBasic:
 
-    def __getitem__(self, ITEM_TYPE, i):
+    def __getitem__(self, ITEM_TYPE, key, item_name = ''):
+        if not item_name:
+            item_name = ITEM_TYPE
         if ITEM_TYPE not in self.__dict__.keys():
             err_msg = 'No ' + ITEM_TYPE + ' currently associated'
             raise AttributeError, err_msg
-        if i < self._count:
-            return(self.__dict__[ITEM_TYPE][i])
-        else:
-            err_msg = 'Index out of bounds'
-            raise KeyError, err_msg
+        return(self.__dict__[ITEM_TYPE][key])
+
 
 
     def __len__(self):
@@ -224,14 +223,19 @@ class GameSegments(GameSubpartBasic):
 class GameEvents(GameSubpartBasic):
 
     def __init__(self, pbp_info):
-
         self._init_attributes(pbp_info)
         self.pbp = eventsHelper.preprocessPbp(pbp_info['play_by_play'])
         self.__preprocess_flag = False
         
     
     def __getitem__(self, i):
-        return(GameSubpartBasic.__getitem__(self, 'events', i))
+        return(GameSubpartBasic.__getitem__(self, 'events', i,
+                                            item_name = 'Events'))
+
+
+    def ix(self, i):
+        return(GameSubpartBasic.__getitem__(self, '_events', i,
+                                            item_name = 'Individual Events'))
 
 
     def _init_attributes(self, pbp_info):
@@ -252,9 +256,9 @@ class GameEvents(GameSubpartBasic):
                            for k in team_info_dict.keys()}
         player_info_list = [{'pid' : _id,
                             'name' : n,
-                                   'city' : c,
-                                   'team_id' : city_rev_lookup[c],
-                                   'hORa' : ha_rev_dict[city_rev_lookup[c]]} for \
+                           'city' : c,
+                           'team_id' : city_rev_lookup[c],
+                           'hORa' : ha_rev_dict[city_rev_lookup[c]]} for \
                             (_id, n, c) in zip(pbp_info['player_stats_adv']['PLAYER_ID'],
                                                pbp_info['player_stats_adv']['PLAYER_NAME'],
                                                pbp_info['player_stats_adv']['TEAM_CITY'])
@@ -262,6 +266,8 @@ class GameEvents(GameSubpartBasic):
         for k in team_info_dict.keys():
             team_info_dict[k]['players'] = [p['pid'] for p in player_info_list if \
                                             p['team_id'] == team_info_dict[k]['id']]
+            team_info_dict[k]['starters'] = team_info_dict[k]['players'][:5]
+            
         self.ha = ha_dict
         self.team_info = team_info_dict
         self.player_info = player_info_list
@@ -270,11 +276,13 @@ class GameEvents(GameSubpartBasic):
     def preprocess(self,):
         if not self.__preprocess_flag:
             self._determine_pbp_names()
-            self._create_events()
+            self._create_events_indi()
+            self._players_on_court()
+            self._create_events_groups()
             for e in self.events:
                 e.preprocess()
             self.__preprocess_flag = True
-##        self._players_on_court()
+            
         else:
             pass
 
@@ -282,25 +290,71 @@ class GameEvents(GameSubpartBasic):
     def _determine_pbp_names(self,):
         self.player_info = eventsHelper.determinePlayerPBPNames(self.player_info,
                                                                 self.pbp)
+        # FIX THIS!!!!!!
+        # SHOULD DETERMINE BY BOX SCORE INFO / STATS, NOT HERE...
+        for p in self.player_info:
+            if not p['pbp_name']:
+                p['played_game'] = False
+            else:
+                p['played_game'] = True
+        self.id2name = {p['pid'] : p['pbp_name'] for \
+                        p in self.player_info if p['played_game']}
+        self.name2id = {p['pbp_name'] : p['pid'] for \
+                        p in self.player_info if p['played_game']}
 
 
     def _players_on_court(self,):
-        # attempt to determine which players on on
-        # the court at a given time
+##        # attempt to determine which players on on
+##        # the court at a given time
+##        active_players = []
+##        cur_active = {'home' : self.team_info['home']['starters'],
+##                      'away' : self.team_info['away']['starters']}
+##        for i,e in enumerate(self._events):
+##            active_home = cur_active['home']
+##            active_away = cur_active['away']
         pass
 
 
-    def _create_events(self,):
-        self._events2event_list = \
-                                eventsHelper.splitBySubsQuarters(self.pbp)
-        self._num_events = len(self._events2event_list)
-        self.events = [Events(self.pbp.ix[indxs].copy(),
-##                              self.player_info_dict,
-##                              self.players[indxs]) \
-                              ) \
-                       for indxs in self._events2event_list]
-        self._count = len(self.events)
+    def _create_events_indi(self,):
+        
+        self._events = [Event(ev) for \
+                        ev in eventsHelper.events2Entries(self.pbp)]
+        
+        for e in self._events:
+            if e['Event'] in ['TO-UNKN', 'FOUL-UNKN']:
+                # Two types of events for which we don't know
+                # what the description looks like well enough
+                # to "dead-reckon" pull the name
+                team = e['Team']
+                p_lnames = [p['last_name'] for \
+                            p in self.player_info \
+                            if p['pid'] in self.team_info[team]['players']]
+                p_pbp_names = [p['pbp_name'] for \
+                            p in self.player_info \
+                            if p['pid'] in self.team_info[team]['players']]
+                e['Player'] = eventsHelper.\
+                              playerNameFromDescrip(e['DESCRIPTION'],
+                                                    p_lnames,
+                                                    p_pbp_names)
+                                                    
+            try:
+                e['pid'] = self.name2id[e['Player']]
+            except KeyError:
+                e['pid'] = None
+                
+        self._num_events = len(self._events)
+        for i in range(self._num_events):
+            self.ix(i)['Index'] = i
 
+
+    def _create_events_groups(self,):
+
+        self._events2event_list  = \
+                      eventsHelper.splitEventsBySubsQuarters(self._events)
+        self._count = len(self._events2event_list)
+        self.events = [Events([self.ix(i) for \
+                               i in el]) for\
+                       el in self._events2event_list]
 
 
 
@@ -328,11 +382,7 @@ class GameMoments(GameSubpartBasic):
         pass
 
 
-
-
-
-
-class Segment(object):
+class Segment(GameSubpartBasic):
 
 
     def __init__(events_id, events,
@@ -358,7 +408,7 @@ class Segment(object):
         self.transitions = {} # or []??
 
 
-class Moment(object):
+class Moment(GameSubpartBasic):
     # All functionality that has been constructed for analyzing
     # the moment data (distances, plots, etc) goes in this class
 
@@ -367,22 +417,48 @@ class Moment(object):
         pass
 
 
-class Events:
+class Events(GameSubpartBasic):
 
-    def __init__(self, pbp_segment):#, player_info, players,):
+    def __init__(self, events):#, player_info, players,):
         # set the info passed
-        # set Quarter
         # reduce list of players for each line item to a single list
+        # set players
         # other??
-        self.pbp = pbp_segment
+        self.events = events
         self.__preprocess_flag = False
 
 
+    def __getitem__(self, i):
+        return(GameSubpartBasic.__getitem__(self, 'events', i))
+
+
+    def __str__(self,):
+        return(str(self.events))
+
+
+    @property
+    def start(self,):
+        return(self[0]['GAMECLOCK'])
+
+
+    @property
+    def end(self,):
+        return(self[-1]['GAMECLOCK'])
+
+
+    @property
+    def period(self,):
+        return(self[0]['PERIOD'])
+
+
     def preprocess(self,):
-        if not self.__preprocess_flag:
-            self.__preprocess_flag = True
-        else:
-            pass
+        pass
+##        if not self.__preprocess_flag:
+##            for e in self.events:
+##                e.preprocess()
+##            self.__preprocess_flag = True
+##        else:
+##            pass
 
 
 class Event(dict):
@@ -393,11 +469,8 @@ class Event(dict):
     """
 
     __slots__ = ()
-    
 
 
+    def preprocess(self,):
+        pass
 
-
-
-        
-        

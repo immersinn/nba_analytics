@@ -3,7 +3,7 @@ import logging
 from multiprocessing import Process, Lock, Queue, Value, Array
 
 from nba_analytics import espngames
-from nba_analytics.espnMomentsTools import retrieveDumpGameMoments
+from nba_analytics.espn.espnMomentsTools import retrieveDumpGameMoments
 from dbinterface_python.dbconns import connectMon
 
 LOG_FILENAME = 'gameMomentsPull.out'
