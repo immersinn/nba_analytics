@@ -674,7 +674,63 @@ def playerNameFromDescrip(descrip,
             p_name = ' '.join(d_split[:i+1])
     return(p_name)
             
-    
+
+
+####################################################
+### Who's on first?
+####################################################
+
+
+def playersForEventsGame(ge_instance):
+    periods = ge_instance.periods
+    for ev in ge_instance._events:
+        ev['Players'] = {}
+    for q in periods:
+        quarter_events = [ev for ev in ge_instance._events if \
+                          ev['PERIOD'] == q]
+        for team in ['home', 'away']:
+            players = playersForEventsQuarter(quarter_events,
+                                              team,
+                                              ge_instance.name2id)
+            for i,ev in enumerate(quarter_events):
+                ev['Players'][team] = players[i]
+
+
+def playersForEventsQuarter(qes, team, lookup):
+    players = [set() for _ in qes]
+    for i,s in enumerate(qes):
+        if s['Team'] == team:
+            if s['Event'] not in ['SUB_IN', 'SUB_OUT']:
+                if s['Player'] not in ['Lakers', 'SPURS']:
+                    p = s['Player']
+                    players[i].update([p])
+                    for j in reversed(range(i)):
+                        if qes[j]['Player'] != p:
+                            players[j].update([p])
+                        else:
+                            break
+                else:
+                    pass
+            elif s['Event'] == 'SUB_OUT':
+                p = s['Player']
+                players[i].update([p])
+                for j in reversed(range(i)):
+                    if qes[j]['Player'] != p:
+                        players[j].update([p])
+                    else:
+                        break
+            elif s['Event'] == 'SUB_IN':
+                p = s['Player']
+                players[i].update([p])
+                for j in range(i+1, len(qes)):
+                    if qes[j]['Player'] != p:
+                        players[j].update([p])
+                    else:
+                        break
+        else:
+            pass
+    players = [sorted([lookup[p] for p in pl]) for pl in players]
+    return(players)
 
 
 ####################################################

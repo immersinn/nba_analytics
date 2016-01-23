@@ -120,7 +120,6 @@ class GameSubpartBasic:
         return(self.__dict__[ITEM_TYPE][key])
 
 
-
     def __len__(self):
         if '_count' in self.__dict__.keys():
             return(self._count)
@@ -277,6 +276,7 @@ class GameEvents(GameSubpartBasic):
         if not self.__preprocess_flag:
             self._determine_pbp_names()
             self._create_events_indi()
+            self._determine_periods()
             self._players_on_court()
             self._create_events_groups()
             for e in self.events:
@@ -303,16 +303,15 @@ class GameEvents(GameSubpartBasic):
                         p in self.player_info if p['played_game']}
 
 
+    def _determine_periods(self,):
+        periods = sorted(list(set([ev['PERIOD'] for ev in self._events])))
+        self.periods = periods
+
+
     def _players_on_court(self,):
-##        # attempt to determine which players on on
-##        # the court at a given time
-##        active_players = []
-##        cur_active = {'home' : self.team_info['home']['starters'],
-##                      'away' : self.team_info['away']['starters']}
-##        for i,e in enumerate(self._events):
-##            active_home = cur_active['home']
-##            active_away = cur_active['away']
-        pass
+        # Edits individual events in-place,
+        # so no need to return anything
+        eventsHelper.playersForEventsGame(self)
 
 
     def _create_events_indi(self,):
@@ -436,6 +435,10 @@ class Events(GameSubpartBasic):
         return(str(self.events))
 
 
+    def _determine_ball_transitions(self,):
+        pass
+
+
     @property
     def start(self,):
         return(self[0]['GAMECLOCK'])
@@ -449,6 +452,11 @@ class Events(GameSubpartBasic):
     @property
     def period(self,):
         return(self[0]['PERIOD'])
+
+
+    @property
+    def players(self,):
+        return(self[0]['Players'])
 
 
     def preprocess(self,):

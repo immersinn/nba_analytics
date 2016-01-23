@@ -52,35 +52,6 @@ def getPlayer(e, p):
     print('broken call to get player func')
 
     
-def detEventState(event_description):
-    ed = event_description
-    if ed:
-        if re.search(r'Free Throw [1-3] of [1-3]', ed):
-            state = 'FreeThrow'
-        elif re.search(r'MISS', ed):
-            state = 'MissShot'
-        elif re.search(r'PTS|Pts|pts', ed):
-            state = 'MadeShot'
-        elif re.search(r'FOUL|Foul', ed):
-            state = 'Foul'
-        elif re.search(r'Turnover', ed):
-            state = 'Turnover'
-        elif re.search(r'STEAL|Steal', ed):
-            state = 'Steal'
-        elif re.search(r'BLOCK|Block', ed):
-            state = 'Block'
-        elif re.search(r'REBOUND|Rebound', ed):
-            state = 'Rebound'
-        elif re.search(r'Timeout', ed):
-            state = 'Timeout'
-        elif re.search(r'SUB:', ed):
-            state = 'EOL'
-        else:
-            state = ''
-        return(state)
-    else:
-        return('')
-    
 
 def detEventType(event_line):
     """
