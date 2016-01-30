@@ -1,7 +1,7 @@
 
 ##import gameHelper
 import momentsHelper
-import eventsHelperNew as eventsHelper
+import eventsHelper
 import segmentsHelper
 
 from dataFieldNames import *
@@ -287,6 +287,12 @@ class GameEvents(GameSubpartBasic):
             pass
 
 
+    def getTransitions(self,):
+        ef = eventsHelper.EventsFinder(self._events)
+        ef.getEvents()
+        self.transition_dict = ef.event_dict
+
+
     def _determine_pbp_names(self,):
         self.player_info = eventsHelper.determinePlayerPBPNames(self.player_info,
                                                                 self.pbp)
@@ -411,12 +417,12 @@ class Moment(GameSubpartBasic):
     # All functionality that has been constructed for analyzing
     # the moment data (distances, plots, etc) goes in this class
 
-    
     def preprocess(self,):
         pass
 
 
 class Events(GameSubpartBasic):
+
 
     def __init__(self, events):#, player_info, players,):
         # set the info passed
@@ -424,6 +430,7 @@ class Events(GameSubpartBasic):
         # set players
         # other??
         self.events = events
+        self._count = len(events)
         self.__preprocess_flag = False
 
 
@@ -481,4 +488,50 @@ class Event(dict):
 
     def preprocess(self,):
         pass
+
+
+    @property
+    def DESCRIPTION(self,):
+        return(self['DESCRIPTION'])
+
+    @property
+    def Event(self,):
+        return(self['Event'])
+
+    @property
+    def EVENTMSGACTIONTYPE(self,):
+        return(self['EVENTMSGACTIONTYPE'])
+
+    @property
+    def EVENTMSGTYPE(self,):
+        return(self['EVENTMSGTYPE'])
+
+    @property
+    def EVENTNUM(self,):
+        return(self['EVENTNUM'])
+
+    @property
+    def GAMECLOCK(self,):
+        return(self['GAMECLOCK'])
+
+    @property
+    def PERIOD(self,):
+        return(self['PERIOD'])
+
+    @property
+    def pid(self,):
+        return(self['pid'])
+    
+    @property
+    def Player(self,):
+        return(self['Player'])
+
+    @property
+    def PlayersOnCourt(self,):
+        return(self['PlayersOnCourt'])
+
+    @property
+    def Team(self,):
+        return(self['Team'])
+    
 
