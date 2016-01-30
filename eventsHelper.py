@@ -956,7 +956,10 @@ class SinglePosChangeFinder:
 
  
     def getPlayer(self,):
-        return(self.current.pid)
+        if self.current.pid:
+            return(self.current.pid)
+        else:
+            return(self.current.Player)
 
 
     def updateTransition(self,):
