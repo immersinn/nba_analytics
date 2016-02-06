@@ -6,7 +6,7 @@ import segmentsHelper
 
 from dataFieldNames import *
 
-reload(eventsHelper)
+reload(momentsHelper)
 
 
 class NBAGameBasic:
@@ -365,26 +365,43 @@ class GameEvents(GameSubpartBasic):
 
 class GameMoments(GameSubpartBasic):
 
-    def __init__(self,):
-        pass
+
+    def __init__(self, movements_info, game_info):
+        self._data = movements_info
+        # something with game_info
 
 
     def __getitem__(self, i):
-        return(GameSubpartBasic.__getitem__(self, 'moments', i))
+        return(GameSubpartBasic.__getitem__(self, 'moments', i,
+                                            item_name = 'Moments'))
 
 
-    def preprocess(self, data=None):
+    def preprocess(self, ):
         # See 'Parse and Preproc Moments';
         # also, momentsHelper.py
-        self._create_moments(data)
+        self._create_moments()
+        self._data = None
 
 
-    def _create_moments(self, data):
+    def _create_moments(self,):
         # segments_info = momentsHelper.preprocessSegments(moments)
         # remove duplicates
         # merge consec movements data
         # create Moment class for each
-        pass
+        self._mpp = momentsHelper.MomentsPreprocess(self._data)
+
+    """
+    Is it strange that the MomentsPreprocess instance still
+    "owns" this data?
+    """
+
+    @property
+    def meta(self,):
+        return(self._mpp.meta)
+
+    @property
+    def moments(self,):
+        return(self._mpp.moments)
 
 
 class Segment(GameSubpartBasic):
