@@ -43,7 +43,7 @@ def momentsWorker(jobs, lock,
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except Exception as X:
-            logger1.critical('caught: ' + str(X.__class__) + '; message: ' + X.message)
+            logger1.critical('caught: ' + str(X.__class__) + '; message: ' + X.message + ' for game ' + str(game_id))
     
     
 
@@ -73,6 +73,7 @@ def main():
     existing_gids = getExistingGameIds()
     moments_gids = getExistingGameIds(coll='Moments')
     game_ids = existing_gids.difference(moments_gids)
+##    game_ids = existing_gids
 
     # Init workers
     print('Initilizing workers...')
@@ -90,7 +91,7 @@ def main():
         logger_mp.debug("putting job #%i in the queue" % (job_no))
         jobs.put(job)
     logger_mp.info("reached the end of input; waiting to finish outstanding jobs")
-    for _ in xrange(k):
+    for _ in xrange(num_workers):
         jobs.put(None)  # give the workers heads up that they can finish -- no more work!
     
     for w in workers:
