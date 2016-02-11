@@ -2,7 +2,7 @@
 import pickle
 from pandas import read_pickle
 
-from .dataFieldNames import *
+from dataFieldNames import *
 
 
 def loadFiles():

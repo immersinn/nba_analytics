@@ -79,7 +79,7 @@ class MomentsPreprocess:
         self.meta = self.meta.ix[keep]#.copy()
 
         # Reindex data
-        self.meta.index = list(range(self.meta.shape[0]))
+        self.meta.index = range(self.meta.shape[0])
 
 
     def buildMoments(self,):
@@ -117,7 +117,7 @@ class MomentsPreprocess:
             met = self.meta[self.meta.Segment==s]
             eids = met.EventId.tolist()
             met = mergeMeta(s, met)
-            mom = mergeAndCleanParts({k : m for (k,m) in list(self.moments.items()) \
+            mom = mergeAndCleanParts({k : m for (k,m) in self.moments.items() \
                                       if k in eids})
             if mom.shape[0] > 0:
                 met['DataStartTime'] = max(mom.game_clock)
@@ -219,7 +219,7 @@ def removeFalsePlayers(mdf, cutoff = 0.9):
         if f < cutoff:
             mdf.drop(mdf.index[mdf.player_id==pids[i]], inplace=True)
 
-    mdf.index = list(range(mdf.shape[0]))
+    mdf.index = range(mdf.shape[0])
 
     return(mdf)
 
@@ -270,12 +270,12 @@ def mergeParts(mom_dict):
 
         if new_moms_indx:
             new_moms = moment.ix[new_moms_indx].copy()
-            new_moms.index = list(range(curr_indx, curr_indx + new_moms.shape[0]))
+            new_moms.index = range(curr_indx, curr_indx + new_moms.shape[0])
             merged = pandas.concat([merged, new_moms], axis = 0)
             timestamps.update(new_stamps)
             curr_indx = curr_indx + new_moms.shape[0]
 
-    merged.index = list(range(merged.shape[0]))
+    merged.index = range(merged.shape[0])
 ##    merged.sort_index(by = 'timestamp', inplace = True)
 
     return(merged)
@@ -296,19 +296,19 @@ def removeClockStop(segment):
                   zip(game_info.ix[0:(game_info.shape[0]-2), 2], game_info.ix[1:(game_info.shape[0]-1), 1])]
 
     """
-    ball_inds = list(range(0, segment.shape[0], 11))
+    ball_inds = range(0, segment.shape[0], 11)
     time_diff = segment.game_clock[ball_inds].diff() # If 0, current index is same as previous
     no_diff = numpy.where(time_diff == 0)[0]
     for nd in reversed(no_diff):
-        targets = list(range((nd-1) * 11, nd * 11))
+        targets = range((nd-1) * 11, nd * 11)
         segment = segment.drop(targets)
-    segment.index = list(range(segment.shape[0]))
+    segment.index = range(segment.shape[0])
     return(segment)
 
 
 def removeSpikes(segment):
     """ """
-    ball_inds = list(range(0, segment.shape[0], 11))
+    ball_inds = range(0, segment.shape[0], 11)
     time_diff = segment.game_clock[ball_inds].diff()
     jumps = numpy.where(time_diff > 0.055)[0]
     drops = numpy.where(time_diff < -0.055)[0]
@@ -323,15 +323,15 @@ def removeSpikes(segment):
         if len(close_drops) > 0:
             d = drops[close_drops[-1]]
             removed_inds.update(set(range(j, d)))
-            segment = segment.drop(list(range(j*11, d*11)))
+            segment = segment.drop(range(j*11, d*11))
             drops = drops[close_drops[-1]:]
-    segment.index = list(range(segment.shape[0]))
+    segment.index = range(segment.shape[0])
     return(segment)
 
 
 def removeRollbacks(segment):
     """ """
-    ball_inds = list(range(0, segment.shape[0], 11))
+    ball_inds = range(0, segment.shape[0], 11)
     time_diff = segment.game_clock[ball_inds].diff()
     jumps = list(numpy.where(time_diff > 0)[0])
     i = len(jumps) - 1
@@ -347,9 +347,9 @@ def removeRollbacks(segment):
             if ind in jumps:
                 jumps.remove(ind)
                 i -= 1
-        remove_range = list(range(ind * 11, ior * 11))
+        remove_range = range(ind * 11, ior * 11)
         segment = segment.drop(remove_range)
         i -= 1
-    segment.index = list(range(segment.shape[0]))
+    segment.index = range(segment.shape[0])
     return(segment)
 
