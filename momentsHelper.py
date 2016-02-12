@@ -35,12 +35,15 @@ META_NEW_ATTRS = ['MomentId',
 class MomentsPreprocess:
 
 
-    def __init__(self, moments_data, segment_criteria = 'Player'):
+    def __init__(self, moments_data,
+                 segment_criteria = 'Player',
+                 debug_mode = False):
         self.sc = segment_criteria
         self.raw = moments_data
         self.orderMomentsByTimestamp()
-        self.buildMeta()
-        self.buildMoments()
+        if not debug_mode:
+            self.buildMeta()
+            self.buildMoments()
 
 
     def orderMomentsByTimestamp(self,):

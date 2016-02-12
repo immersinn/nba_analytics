@@ -5,17 +5,18 @@ from pandas import read_pickle
 from .dataFieldNames import *
 
 
-def loadFiles():
+def loadFiles(pbp_file='/home/immersinn/Data/DataDumps/NBA/pbpSubset02.pkl',
+              moments_file='/home/immersinn/Data/DataDumps/NBA/momentsSubset02.pkl'):
     # [u'0041400161', u'0041400163', u'0041400164', u'0021400648']
 
-    try:
-        with open('/home/immersinn/Data/DataDumps/NBA/momentsSubset02.pkl', 'r') as f1:
-            moments = pickle.load(f1)
-    except TypeError:
-        moments = read_pickle('/home/immersinn/Data/DataDumps/NBA/momentsSubset.pkl')
-            
-    with open('/home/immersinn/Data/DataDumps/NBA/pbpSubset02.pkl', 'r') as f1:
-        pbp = pickle.load(f1)
+##    with open('/home/immersinn/Data/DataDumps/NBA/momentsSubset02.pkl', 'rb') as f1:
+##        moments = pickle.Unpickler(f1).load()
+##               
+##    with open('/home/immersinn/Data/DataDumps/NBA/pbpSubset02.pkl', 'rb') as f1:
+##        pbp = pickle.Unpickler(f1).load()
+
+    pbp = read_pickle(pbp_file)
+    moments = read_pickle(moments_file)
 
     return(moments, pbp)
 

@@ -1,7 +1,6 @@
 
 from importlib import reload
 
-##import gameHelper
 from . import momentsHelper
 from . import eventsHelper
 from . import segmentsHelper
@@ -108,8 +107,8 @@ class NBAGameAnalysis(NBAGameBasic):
         except AttributeError:
             err_msg = "Transition Graph has not been extracted; run 'extractTransitionGraph' method"
             raise AttributeError(err_msg)
-
-
+                              
+        
 
 class GameSubpartBasic:
 
@@ -153,12 +152,12 @@ class GameSegments(GameSubpartBasic):
 
 
     def __init__(self, game_info, player_info, moments, pbp):
-
+        
         self._init_attrs(game_info = game_info,
                          player_info = player_info)
         self._init_moments_events(game_info,
                                   player_info,
-                                  moments, pbp)
+                                  moments, pbp)        
         self.__preprocess_flag = False
 
 
@@ -175,7 +174,7 @@ class GameSegments(GameSubpartBasic):
                                  player_info,
                                  pbp)
 
-
+    
     def _align_moments_events(self,):
         self.ms_matches = segmentsHelper.matchEventsMoments(self.events,
                                                             self.moments)
@@ -218,7 +217,7 @@ class GameSegments(GameSubpartBasic):
             s.extractTransitions()
             all_transitions.extend(s.transitions)
         self.transition_graph = all_transitions
-
+        
 
 
 class GameEvents(GameSubpartBasic):
@@ -227,8 +226,8 @@ class GameEvents(GameSubpartBasic):
         self._init_attributes(pbp_info)
         self.pbp = eventsHelper.preprocessPbp(pbp_info['play_by_play'])
         self.__preprocess_flag = False
-
-
+        
+    
     def __getitem__(self, i):
         return(GameSubpartBasic.__getitem__(self, 'events', i,
                                             item_name = 'Events'))
@@ -268,11 +267,11 @@ class GameEvents(GameSubpartBasic):
             team_info_dict[k]['players'] = [p['pid'] for p in player_info_list if \
                                             p['team_id'] == team_info_dict[k]['id']]
             team_info_dict[k]['starters'] = team_info_dict[k]['players'][:5]
-
+            
         self.ha = ha_dict
         self.team_info = team_info_dict
         self.player_info = player_info_list
-
+    
 
     def preprocess(self,):
         if not self.__preprocess_flag:
@@ -284,7 +283,7 @@ class GameEvents(GameSubpartBasic):
             for e in self.events:
                 e.preprocess()
             self.__preprocess_flag = True
-
+            
         else:
             pass
 
@@ -323,10 +322,10 @@ class GameEvents(GameSubpartBasic):
 
 
     def _create_events_indi(self,):
-
+        
         self._events = [Event(ev) for \
                         ev in eventsHelper.events2Entries(self.pbp)]
-
+        
         for e in self._events:
             if e['Event'] in ['TO-UNKN', 'FOUL-UNKN']:
                 # Two types of events for which we don't know
@@ -343,12 +342,12 @@ class GameEvents(GameSubpartBasic):
                               playerNameFromDescrip(e['DESCRIPTION'],
                                                     p_lnames,
                                                     p_pbp_names)
-
+                                                    
             try:
                 e['pid'] = self.name2id[e['Player']]
             except KeyError:
                 e['pid'] = None
-
+                
         self._num_events = len(self._events)
         for i in range(self._num_events):
             self.ix(i)['Index'] = i
@@ -368,8 +367,9 @@ class GameEvents(GameSubpartBasic):
 class GameMoments(GameSubpartBasic):
 
 
-    def __init__(self, movements_info, game_info):
+    def __init__(self, movements_info, game_info, debug_mode=False):
         self._data = movements_info
+        self._debug_mode = debug_mode
         # something with game_info
 
 
@@ -390,20 +390,15 @@ class GameMoments(GameSubpartBasic):
         # remove duplicates
         # merge consec movements data
         # create Moment class for each
-        self._mpp = momentsHelper.MomentsPreprocess(self._data)
-
-    """
-    Is it strange that the MomentsPreprocess instance still
-    "owns" this data?
-    """
-
-    @property
-    def meta(self,):
-        return(self._mpp.meta)
-
-    @property
-    def moments(self,):
-        return(self._mpp.moments)
+##        self._mpp = momentsHelper.MomentsPreprocess(self._data,
+##                                                    debug_mode = self._debug_mode)
+        mpp = momentsHelper.MomentsPreprocess(self._data,
+                                              debug_mode = self._debug_mode)
+        cols = mpp.meta.columns; cols = cols.insert(0, 'Index')
+        self.moments = [Moment(mom, met) for (mom, met) in \
+                        zip(list(mpp.moments.values()),
+                            [{k : v for (k,v) in zip(cols, record)} \
+                             for record in mpp.meta.to_records()])]
 
 
 class Segment(GameSubpartBasic):
@@ -436,7 +431,11 @@ class Moment(GameSubpartBasic):
     # All functionality that has been constructed for analyzing
     # the moment data (distances, plots, etc) goes in this class
 
-    def preprocess(self,):
+    def __init__(self, moment, meta):
+        self.data = moment
+        self.meta = meta
+
+    def preprocess(self, ):
         pass
 
 
@@ -540,7 +539,7 @@ class Event(dict):
     @property
     def pid(self,):
         return(self['pid'])
-
+    
     @property
     def Player(self,):
         return(self['Player'])
@@ -552,5 +551,4 @@ class Event(dict):
     @property
     def Team(self,):
         return(self['Team'])
-
-
+    
