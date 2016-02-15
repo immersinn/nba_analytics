@@ -432,11 +432,44 @@ class Moment(GameSubpartBasic):
     # the moment data (distances, plots, etc) goes in this class
 
     def __init__(self, moment, meta):
-        self.data = moment
-        self.meta = meta
+        self._data = moment
+        self._meta = meta
+
 
     def preprocess(self, ):
         pass
+
+
+    @property
+    def ind(self,):
+        return(self._meta['MomentId'])
+
+
+    @property
+    def start(self,):
+##        return(self.meta['StartTime'])
+        return(self._meta['DataStartTime'])
+
+
+    @property
+    def end(self,):
+##        return(self.meta['EndTime'])
+        return(self._meta['DataEndTime'])
+
+
+    @property
+    def period(self,):
+        return(self._meta['Period'])
+
+
+    @property
+    def players(self,):
+        return(self._meta['PlayerIds'])
+
+
+    @property
+    def events(self,):
+        return(self._meta['EventIds'])
 
 
 class Events(GameSubpartBasic):

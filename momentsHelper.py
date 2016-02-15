@@ -23,7 +23,8 @@ META_NEW_ATTRS = ['MomentId',
                   'DataStartTime', 'DataEndTime',
                   'ShotStart', 'ShotEnd',
                   'Period',
-                  'EventIds']
+                  'EventIds',
+                  'PlayerIds',]
 
 
 
