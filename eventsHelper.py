@@ -688,6 +688,8 @@ def playerNameFromDescrip(descrip,
 
 def playersForEventsGame(ge_instance):
     periods = ge_instance.periods
+    team_names = [ge_instance.team_info['home']['nickname'].lower(),
+                  ge_instance.team_info['away']['nickname'].lower()]
     for ev in ge_instance._events:
         ev['PlayersOnCourt'] = {}
     for q in periods:
@@ -696,17 +698,18 @@ def playersForEventsGame(ge_instance):
         for team in ['home', 'away']:
             players = playersForEventsQuarter(quarter_events,
                                               team,
-                                              ge_instance.name2id)
+                                              ge_instance.name2id,
+                                              team_names)
             for i,ev in enumerate(quarter_events):
                 ev['PlayersOnCourt'][team] = players[i]
 
 
-def playersForEventsQuarter(qes, team, lookup):
+def playersForEventsQuarter(qes, team, lookup, team_names):
     players = [set() for _ in qes]
     for i,s in enumerate(qes):
         if s['Team'] == team:
             if s['Event'] not in ['SUB_IN', 'SUB_OUT']:
-                if s['Player'] not in ['Lakers', 'SPURS']:
+                if s['Player'].lower() not in team_names:
                     p = s['Player']
                     players[i].update([p])
                     for j in reversed(list(range(i))):

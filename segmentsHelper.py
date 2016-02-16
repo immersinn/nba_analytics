@@ -1,20 +1,20 @@
 
 
-def matchEventsMoments(events, moments):
+def matchEventsMoments(game_segments):
 
     # Segments meta
     seg_ssq = {}
-    for k in moments.keys():
-        seg_ssq[k] = {'Start' : int(moments[k]['StartTime']),
-                      'Stop' : int(moments[k]['EndTime']),
-                      'Quarter' : moments[k]['Quarter']}
+    for k in game_segments._moments:
+        seg_ssq[k.ind] = {'Start' : k.start,
+                          'Stop' : k.end,
+                          'Quarter' : k.period}
 
     # Play by Play meta
     pbp_ssq = {}
-    for k in events.keys():
-        pbp_ssq[k] = {'Start' : events[k]['StartTime'],
-                      'Stop' : events[k]['EndTime'],
-                      'Quarter' : events[k]['Quarter']}
+    for k in game_segments._events:
+        pbp_ssq[k.ind] = {'Start' : k.start,
+                          'Stop' : k.end,
+                          'Quarter' : k.period}
         
     # Find Matches
     matches = []

@@ -1,13 +1,13 @@
 
-from importlib import reload
-
 from . import momentsHelper
 from . import eventsHelper
 from . import segmentsHelper
-
+from . import momentsCalculations
 from .dataFieldNames import *
 
-reload(momentsHelper)
+from importlib import reload
+reload(eventsHelper)
+reload(segmentsHelper)
 
 
 class NBAGameBasic:
@@ -112,18 +112,22 @@ class NBAGameAnalysis(NBAGameBasic):
 
 class GameSubpartBasic:
 
-    def __getitem__(self, ITEM_TYPE, key, item_name = ''):
-        if not item_name:
-            item_name = ITEM_TYPE
-        if ITEM_TYPE not in list(self.__dict__.keys()):
-            err_msg = 'No ' + ITEM_TYPE + ' currently associated'
+    def __getitem__(self, key, item_key=''):
+        if not item_key:
+            ITEM_NAME = self._SUB_TYPE_NAME
+        else:
+            ITEM_NAME = item_key
+        if ITEM_NAME not in list(self.__dict__.keys()):
+            err_msg = 'No ' + ITEM_NAME + ' currently associated'
             raise AttributeError(err_msg)
-        return(self.__dict__[ITEM_TYPE][key])
+        return(self.__dict__[ITEM_NAME][key])
 
 
     def __len__(self):
         if '_count' in list(self.__dict__.keys()):
             return(self._count)
+        elif '_SUB_TYPE_NAME' in list(self.__dict__.keys()):
+            return(len(self.__dict__[self._SUB_TYPE_NAME]))
         else:
             return(0)
 
@@ -151,59 +155,70 @@ class GameSubpartBasic:
 class GameSegments(GameSubpartBasic):
 
 
-    def __init__(self, game_info, player_info, moments, pbp):
+    _SUB_TYPE_NAME = 'segments'
+
+
+    def __init__(self, moments, pbp,
+                 game_info, player_info):
         
-        self._init_attrs(game_info = game_info,
-                         player_info = player_info)
-        self._init_moments_events(game_info,
-                                  player_info,
-                                  moments, pbp)        
+##        self._init_attrs(game_info = game_info,
+##                         player_info = player_info)
+        
+        if type(moments) == GameMoments:
+            self._moments = moments
+        else:
+            pass
+        if type(pbp) == GameEvents:
+            self._events = pbp
+        else:
+            pass
+
+        self._moments = moments
+        self._events = pbp
+            
+##        self._init_moments_events(game_info,
+##                                  player_info,
+##                                  moments, pbp)
         self.__preprocess_flag = False
-
-
-    def __getitem__(self, i):
-        return(GameSubpartBasic.__getitem__(self, 'segments', i))
 
 
     def _init_moments_events(self, game_info, player_info, moments, pbp):
 
-        self.moments = GameMoments(game_info,
-                                   player_info,
-                                   moments)
-        self.events = GameEvents(game_info,
-                                 player_info,
-                                 pbp)
+        self._moments = GameMoments(moments,
+                                    game_info)
+        self._events = GameEvents(pbp)
 
     
     def _align_moments_events(self,):
-        self.ms_matches = segmentsHelper.matchEventsMoments(self.events,
-                                                            self.moments)
-
+        self._ms_matches = segmentsHelper.matchEventsMoments(self)
 
 
     def _init_segments(self,):
-        self.align_moments_events()
-        self.game_segments = []
-        for e,s in self.ms_matches:
+        self._align_moments_events()
+        self.segments = []
+        for i,es in enumerate(self._ms_matches):
+            e, s = es
             if e > -1 and s > -1:
-                new = {}
-                new_ = GameSegment(eid=e, events=self.events[e],
-                                   mid=s, moment=self.moments[s])
+                new = Segment(sid=i,
+                              eid=e, events=self._events[e],
+                              mid=s, moment=self._moments[s])
             elif e == -1:
-                new = GameSegment(eid=-1, events=None,
-                                  mid=s, moment=self.moments[s])
+                new = Segment(sid=i,
+                              eid=-1, events=None,
+                              mid=s, moment=self._moments[s])
 
             elif s == -1:
-                new = GameSegment(eid=e, events=self.events[e],
-                                  mid=-1, moment=None)
-        new.preprocess()
-        self.game_segments.append(new)
+                new = Segment(sid=i,
+                              eid=e, events=self._events[e],
+                              mid=-1, moment=None)
+            new.preprocess()
+            self.segments.append(new)
 
 
     def preprocess(self,):
         if not self.__preprocess_flag:
-            self.moments.preprocess()
-            self.events.preprocess()
+            self._moments.preprocess()
+            self._events.preprocess()
             self._init_segments()
             self.__preprocess_flag = True
         else:
@@ -222,20 +237,23 @@ class GameSegments(GameSubpartBasic):
 
 class GameEvents(GameSubpartBasic):
 
+    _SUB_TYPE_NAME = 'events'
+
     def __init__(self, pbp_info):
         self._init_attributes(pbp_info)
         self.pbp = eventsHelper.preprocessPbp(pbp_info['play_by_play'])
         self.__preprocess_flag = False
         
     
-    def __getitem__(self, i):
-        return(GameSubpartBasic.__getitem__(self, 'events', i,
-                                            item_name = 'Events'))
+##    def __getitem__(self, i):
+##        return(GameSubpartBasic.__getitem__(self, 'events', i,
+##                                            item_name = 'Events'))
 
 
     def ix(self, i):
-        return(GameSubpartBasic.__getitem__(self, '_events', i,
-                                            item_name = 'Individual Events'))
+        return(GameSubpartBasic.__getitem__(self, i,
+                                            item_key = '_events'))
+##                                            item_name = 'Individual Events'))
 
 
     def _init_attributes(self, pbp_info):
@@ -357,14 +375,16 @@ class GameEvents(GameSubpartBasic):
 
         self._events2event_list  = \
                       eventsHelper.splitEventsBySubsQuarters(self._events)
-        self._count = len(self._events2event_list)
-        self.events = [Events([self.ix(i) for \
-                               i in el]) for\
-                       el in self._events2event_list]
+##        self._count = len(self._events2event_list)
+        self.events = [Events([self.ix(i) for i in el], j) \
+                       for j,el in enumerate(self._events2event_list)]
 
 
 
 class GameMoments(GameSubpartBasic):
+
+
+    _SUB_TYPE_NAME = 'moments'
 
 
     def __init__(self, movements_info, game_info, debug_mode=False):
@@ -373,25 +393,18 @@ class GameMoments(GameSubpartBasic):
         # something with game_info
 
 
-    def __getitem__(self, i):
-        return(GameSubpartBasic.__getitem__(self, 'moments', i,
-                                            item_name = 'Moments'))
+##    def __getitem__(self, i):
+##        return(GameSubpartBasic.__getitem__(self, 'moments', i,
+##                                            item_name = 'Moments'))
 
 
     def preprocess(self, ):
-        # See 'Parse and Preproc Moments';
-        # also, momentsHelper.py
         self._create_moments()
         self._data = None
+        self._pp_moments()
 
 
     def _create_moments(self,):
-        # segments_info = momentsHelper.preprocessSegments(moments)
-        # remove duplicates
-        # merge consec movements data
-        # create Moment class for each
-##        self._mpp = momentsHelper.MomentsPreprocess(self._data,
-##                                                    debug_mode = self._debug_mode)
         mpp = momentsHelper.MomentsPreprocess(self._data,
                                               debug_mode = self._debug_mode)
         cols = mpp.meta.columns; cols = cols.insert(0, 'Index')
@@ -399,32 +412,49 @@ class GameMoments(GameSubpartBasic):
                         zip(list(mpp.moments.values()),
                             [{k : v for (k,v) in zip(cols, record)} \
                              for record in mpp.meta.to_records()])]
+        self._count = len(self.moments)
+
+
+    def _pp_moments(self,):
+        for m in self.moments:
+            m.preprocess()
 
 
 class Segment(GameSubpartBasic):
 
 
-    def __init__(events_id, events,
-                 moment_id, moment):
-        self.eid = events_id
-        self.events = events
-        self.mid = moment_id
-        self.moment = moment
-        if events:
-            self.quarter = events.quarter
-        elif moment:
-            self.quarter = moment.quarter
+    def __init__(self, sid,
+                 eid, events,
+                 mid, moment):
+        self.ind = sid
+        self.eid = eid
+        self._events = events
+        self.mid = mid
+        self._moment = moment
+        if self._events:
+            self._tag = 'events'
+        elif self._moment:
+            self._tag = 'moment'
 
 
     def preprocess(self,):
-        self.moment.preprocess()
-        self.events.preprocess()
+        pass
+##        self.moment.preprocess()
+##        self.events.preprocess()
 
 
     def extractTransitions(self,):
         # The stuff that's currently in
         # "Match Ball Transitions to Posession Gaps"
         self.transitions = {} # or []??
+
+
+    @property
+    def period(self,):
+        if self._tag == 'events':
+            return(self._events.period)
+        elif self._tag == 'moment':
+            return(self._moment.period)
 
 
 class Moment(GameSubpartBasic):
@@ -434,10 +464,30 @@ class Moment(GameSubpartBasic):
     def __init__(self, moment, meta):
         self._data = moment
         self._meta = meta
+        self._count = self._data.shape[0]
 
 
     def preprocess(self, ):
-        pass
+        _ = self.ballTransitions
+
+
+    @property
+    def ballTransitions(self,):
+        if '_transitions' not in self.__dict__.keys():
+            self._transitions = momentsCalculations.\
+                                determineBallTransitions(self._data,
+                                                         self.players,
+                                                         self.ballPosessions)
+        return(self._transitions)
+                                                                
+
+    @property
+    def ballPosessions(self,):
+        if '_ball_poss' not in self.__dict__.keys():
+            self._ball_poss = momentsCalculations.\
+                              determineBallPosessions(self._data,
+                                                      self.players)
+        return(self._ball_poss)
 
 
     @property
@@ -464,7 +514,7 @@ class Moment(GameSubpartBasic):
 
     @property
     def players(self,):
-        return(self._meta['PlayerIds'])
+        return(list(self._meta['PlayerIds']))
 
 
     @property
@@ -472,21 +522,38 @@ class Moment(GameSubpartBasic):
         return(self._meta['EventIds'])
 
 
+    def player2playerDist(self, pid1, pid2):
+        err_msg = 'Player does not exist in data: '
+        if pid1 not in self.players:
+            err_msg += str(pid1)
+            raise AttributeError(err_msg)
+        if pid2 not in self.players:
+            err_msg += str(pid2)
+            raise AttributeError(err_msg)
+
+        return(momentsCalculations.\
+               calcP2PDist(self._data, pid1, pid2))
+
+
 class Events(GameSubpartBasic):
 
 
-    def __init__(self, events):#, player_info, players,):
+    _SUB_TYPE_NAME = 'events'
+
+
+    def __init__(self, events, ind):#, player_info, players,):
         # set the info passed
         # reduce list of players for each line item to a single list
         # set players
         # other??
         self.events = events
+        self._ind = ind
         self._count = len(events)
         self.__preprocess_flag = False
 
 
     def __getitem__(self, i):
-        return(GameSubpartBasic.__getitem__(self, 'events', i))
+        return(GameSubpartBasic.__getitem__(self, i))
 
 
     def __str__(self,):
@@ -514,7 +581,12 @@ class Events(GameSubpartBasic):
 
     @property
     def players(self,):
-        return(self[0]['Players'])
+        return(self[0]['PlayersOnCourt'])
+
+
+    @property
+    def ind(self,):
+        return(self._ind)
 
 
     def preprocess(self,):
