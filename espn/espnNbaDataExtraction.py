@@ -297,6 +297,7 @@ def retrieveMomEspn(game_id, verbose=False):
     stop = False
     count = 1
     consecutive_fails = 0
+    cf_max = 4
 
     while not stop:
         if count % 75 == 0:
@@ -309,7 +310,7 @@ def retrieveMomEspn(game_id, verbose=False):
             response = requests.get(url)
             if response.ok:
                 data_dict = transformMomentsMDB(response.json(),
-                                             game_id, event_id)
+                                                game_id, event_id)
             else:
                 attempt_count += 1
                 time.sleep(1 + 2 * attempt_count)
@@ -323,16 +324,14 @@ def retrieveMomEspn(game_id, verbose=False):
             moments.append(data_dict)
             consecutive_fails = 0
 
-        if consecutive_fails > 3:
+        if consecutive_fails > cf_max:
             stop = True
         
         time.sleep(1)
 
-##        if count > 4:
-##            stop = True
-
     if verbose:
         print('fine')
+        
     return(moments)
 
 
