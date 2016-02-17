@@ -31,20 +31,20 @@ def preprocessPbp(pbp):
 def pbpDict2Df(pbp):
     # Build the play-by-play DataFrame from the pbp dictionary
     p_ord = []
-    if 'play_by_play' in list(pbp.keys()):
-        for i in sorted([int(k) for k in list(pbp['play_by_play'].keys())]):
+    if 'play_by_play' in pbp.keys():
+        for i in sorted([int(k) for k in pbp['play_by_play'].keys()]):
                 p_ord.append(pbp['play_by_play'][str(i)])
     else:
-        for i in sorted([int(k) for k in list(pbp.keys())]):
+        for i in sorted([int(k) for k in pbp.keys()]):
                 p_ord.append(pbp[str(i)])
     pbp = pandas.DataFrame(p_ord,
                            columns=HEADER)
-
+    
     return(pbp)
 
 
 def addIndex(pbp):
-    ind = pandas.DataFrame(data = list(range(pbp.shape[0])),
+    ind = pandas.DataFrame(data = range(pbp.shape[0]),
                            columns = ['Index'])
     pbp = pbp.join(ind)
     return(pbp)
@@ -123,12 +123,12 @@ def findNameInLine(names, d, method):
 def matchPlayers2PBPNames(players, pbp_names):
 
     for v in players:
-        n = v['name']
-        n = n.split()
-        v['last_name'] = n[-1]
-        v['first_init'] = n[0][0]
-        v['middle_init'] = n[1][0] if len(n)>2 else ''
-        v['middle_name'] = n[1] if len(n)>2 else ''
+	n = v['name']
+	n = n.split()
+	v['last_name'] = n[-1]
+	v['first_init'] = n[0][0]
+	v['middle_init'] = n[1][0] if len(n)>2 else ''
+	v['middle_name'] = n[1] if len(n)>2 else ''
 
     for p in players:
         if p['middle_name'] and p['middle_name'] + ' ' + p['last_name'] in pbp_names:
@@ -191,7 +191,7 @@ def detEventType(event_line):
     12 --> quarter start
     13 --> quarter end / game end
     """
-
+    
     if event_line.EVENTMSGTYPE == 1:
         state = 'MadeShot'
     elif event_line.EVENTMSGTYPE == 2:
@@ -300,7 +300,7 @@ def basicEventPreProc(event_line):
                         'GAMECLOCK' : int(event_line.GAMECLOCK),
                         })
     return(entries)
-
+    
 
 def splitShot(event_line):
     entries = []
@@ -336,7 +336,7 @@ def splitShot(event_line):
                         'PERIOD' : int(event_line.PERIOD),
                         'GAMECLOCK' : int(event_line.GAMECLOCK),
                         })
-
+    
     return(entries)
 
 
@@ -463,7 +463,7 @@ def splitTurnover(event_line):
         p1_name = d1.split(' Turnover')[0]
         e1_name = 'TO-UNKN'
         p2_name = None
-
+        
 
     if p1_name:
         entries.append({'Event' : e1_name,
@@ -569,7 +569,7 @@ def descripsAndTeams(event_line, t1='', num_players=1):
             p2_team = 'home'; d2 = event_line.HOMEDESCRIPTION;
     else:
         p1_team = 'neutral'
-        d1 = event_line.NEUTRALDESCRIPTION
+        d1 = event_line.NEUTRALDESCRIPTION  
     if num_players == 1:
         return(p1_team, d1)
     elif num_players == 2:
@@ -678,7 +678,7 @@ def playerNameFromDescrip(descrip,
            w in player_pbp_names:
             p_name = ' '.join(d_split[:i+1])
     return(p_name)
-
+            
 
 
 ####################################################
@@ -688,8 +688,6 @@ def playerNameFromDescrip(descrip,
 
 def playersForEventsGame(ge_instance):
     periods = ge_instance.periods
-    team_names = [ge_instance.team_info['home']['nickname'].lower(),
-                  ge_instance.team_info['away']['nickname'].lower()]
     for ev in ge_instance._events:
         ev['PlayersOnCourt'] = {}
     for q in periods:
@@ -698,21 +696,20 @@ def playersForEventsGame(ge_instance):
         for team in ['home', 'away']:
             players = playersForEventsQuarter(quarter_events,
                                               team,
-                                              ge_instance.name2id,
-                                              team_names)
+                                              ge_instance.name2id)
             for i,ev in enumerate(quarter_events):
                 ev['PlayersOnCourt'][team] = players[i]
 
 
-def playersForEventsQuarter(qes, team, lookup, team_names):
+def playersForEventsQuarter(qes, team, lookup):
     players = [set() for _ in qes]
     for i,s in enumerate(qes):
         if s['Team'] == team:
             if s['Event'] not in ['SUB_IN', 'SUB_OUT']:
-                if s['Player'].lower() not in team_names:
+                if s['Player'] not in ['Lakers', 'SPURS']:
                     p = s['Player']
                     players[i].update([p])
-                    for j in reversed(list(range(i))):
+                    for j in reversed(range(i)):
                         if qes[j]['Player'] != p:
                             players[j].update([p])
                         else:
@@ -722,7 +719,7 @@ def playersForEventsQuarter(qes, team, lookup, team_names):
             elif s['Event'] == 'SUB_OUT':
                 p = s['Player']
                 players[i].update([p])
-                for j in reversed(list(range(i))):
+                for j in reversed(range(i)):
                     if qes[j]['Player'] != p:
                         players[j].update([p])
                     else:
@@ -781,7 +778,7 @@ def splitEventsBySubsQuarters(events):
             cur_events_list.append(count)
         count += 1
     return(events_list)
-
+            
 
 ####################################################
 ### Events Transition Network Classes, Modules
@@ -814,7 +811,7 @@ def detEventType(event_line):
     12 --> quarter start
     13 --> quarter end / game end
     """
-
+    
     if event_line.EVENTMSGTYPE == 1:
 ##        if 'Event' == 'ASSIST':
 ##            state = 'Assist'
@@ -855,7 +852,7 @@ def detEventType(event_line):
 
 class EventsFinder:
 
-
+    
     def __init__(self, events):
         self.events = events
         self.indx = 0
@@ -926,7 +923,7 @@ class SinglePosChangeFinder:
             self.state = event_msg_state
         elif event_msg_state in STOP_EVENTS:
             self.state = 'EOL'
-
+    
 
     def setCurrEvent(self, event = {}, index = -1):
         if index < 0:
@@ -957,7 +954,7 @@ class SinglePosChangeFinder:
     def getQuarter(self,):
         return(self.current.PERIOD)
 
-
+ 
     def getPlayer(self,):
         if self.current.pid:
             return(self.current.pid)
@@ -1009,7 +1006,7 @@ class SinglePosChangeFinder:
             self.addInboundsTransition()
 
 
-    def evalMissShot(self):
+    def evalMissShot(self):        
         self.fr_player = self.getPlayer()
         self.transitions.append({'to' : 'FAIL',
                                  'from' : self.fr_player,
@@ -1032,14 +1029,14 @@ class SinglePosChangeFinder:
         # The order in Events instance:
         # First comes the turnover
         # Second comes the steal (if present)
-
+        
         self.fr_player = self.getPlayer()
         self.transitions.append({'to' : 'TURNOVER',
                                  'from' : self.fr_player,
                                  'ttype' : 'Turnover',
                                  'period' : self.getQuarter(),
                                  'gc' : self.getGameClock()})
-
+        
         self.setCurrEvent(index = self.indx + 1)
         if self.current.Event == 'STEAL':
             self.to_player = self.getPlayer()
@@ -1069,7 +1066,7 @@ class SinglePosChangeFinder:
                                      'tsubtype' : 'Assist',
                                      'period' : self.getQuarter(),
                                      'gc' : self.getGameClock()})
-
+            
 
     def evalShootFoul(self):
         # Looks if shooting foul occuring during shot
@@ -1082,7 +1079,7 @@ class SinglePosChangeFinder:
     def evalFoulShots(self):
         # Parses through foul shots and determines if
         # last one was made or missed
-        self.setCurrEvent(index = self.indx + 1)
+        self.setCurrEvent(index = self.indx + 1)        
         if detEventType(self.current) == 'FreeThrow':
             descrip = self.current.DESCRIPTION
             if descrip.find('MISS') > -1:
@@ -1091,7 +1088,7 @@ class SinglePosChangeFinder:
             else:
                 self.state = 'MadeFoul'
             self.indx += 1
-            self.evalFoulShots()
+            self.evalFoulShots()        
         elif detEventType(self.current) == 'Sub':
             self.indx = self.indx + 2 # Subs come in pairs now
             self.state = 'EOL'
