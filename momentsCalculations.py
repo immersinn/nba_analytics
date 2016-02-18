@@ -12,6 +12,8 @@ def determineBallTransitions(df, pids,
     indx_map = list(range(0,df.shape[0],11))
     if not poss:
         poss = determineBallPosessions(df, pids)
+
+    poss = list(poss.Posession)
     
     from_list = []
     to_list = []
@@ -84,6 +86,9 @@ def determineBallPosessions(df, pids,
         if p[i]:
             if not p[i-1] and not p[i+1]:
                 p[i] = None
+
+    p = pandas.DataFrame(data  = {'GameClock' : df.game_clock[indx_map],
+                                  'Posession' : p})
 
     return(p)
 

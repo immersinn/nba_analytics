@@ -112,6 +112,7 @@ class NBAGameAnalysis(NBAGameBasic):
 
 class GameSubpartBasic:
 
+
     def __getitem__(self, key, item_key=''):
         if not item_key:
             ITEM_NAME = self._SUB_TYPE_NAME
@@ -126,7 +127,7 @@ class GameSubpartBasic:
     def __len__(self):
         if '_count' in list(self.__dict__.keys()):
             return(self._count)
-        elif '_SUB_TYPE_NAME' in list(self.__dict__.keys()):
+        elif hasattr(self, '_SUB_TYPE_NAME'):
             return(len(self.__dict__[self._SUB_TYPE_NAME]))
         else:
             return(0)
@@ -173,8 +174,8 @@ class GameSegments(GameSubpartBasic):
         else:
             pass
 
-        self._moments = moments
-        self._events = pbp
+##        self._moments = moments
+##        self._events = pbp
             
 ##        self._init_moments_events(game_info,
 ##                                  player_info,
@@ -316,7 +317,7 @@ class GameEvents(GameSubpartBasic):
         self.player_info = eventsHelper.determinePlayerPBPNames(self.player_info,
                                                                 self.pbp)
         # FIX THIS!!!!!!
-        # SHOULD DETERMINE BY BOX SCORE INFO / STATS, NOT HERE...
+        # SHOULD DETERMINE WHO PLAYED BY BOX SCORE INFO / STATS, NOT HERE...
         for p in self.player_info:
             if not p['pbp_name']:
                 p['played_game'] = False
@@ -426,15 +427,13 @@ class Segment(GameSubpartBasic):
     def __init__(self, sid,
                  eid, events,
                  mid, moment):
-        self.ind = sid
-        self.eid = eid
+        self._ind = sid
         self._events = events
-        self.mid = mid
         self._moment = moment
         if self._events:
-            self._tag = 'events'
+            self._tag = '_events'
         elif self._moment:
-            self._tag = 'moment'
+            self._tag = '_moment'
 
 
     def preprocess(self,):
@@ -450,11 +449,45 @@ class Segment(GameSubpartBasic):
 
 
     @property
+    def ind(self,):
+        return(self._ind)
+
+
+    @property
     def period(self,):
-        if self._tag == 'events':
-            return(self._events.period)
-        elif self._tag == 'moment':
-            return(self._moment.period)
+        return(self.__dict__[self._tag].period)
+
+
+    @property
+    def start(self,):
+        return(self.__dict__[self._tag].start)
+
+
+    @property
+    def end(self,):
+        return(self.__dict__[self._tag].end)
+
+
+    @property
+    def players(self,):
+        return(self.__dict__[self._tag].players)
+
+
+    @property
+    def eventsId(self,):
+        if self._events:
+            return(self._events.ind)
+        else:
+            return(None)
+
+    
+    @property
+    def momentId(self,):
+        if self._moment:
+            return self._moment.ind
+        else:
+            return(None)
+    
 
 
 class Moment(GameSubpartBasic):
@@ -491,6 +524,11 @@ class Moment(GameSubpartBasic):
 
 
     @property
+    def period(self,):
+        return(self._meta['Period'])
+
+
+    @property
     def ind(self,):
         return(self._meta['MomentId'])
 
@@ -505,11 +543,6 @@ class Moment(GameSubpartBasic):
     def end(self,):
 ##        return(self.meta['EndTime'])
         return(self._meta['DataEndTime'])
-
-
-    @property
-    def period(self,):
-        return(self._meta['Period'])
 
 
     @property
@@ -564,6 +597,21 @@ class Events(GameSubpartBasic):
         pass
 
 
+    def preprocess(self,):
+        pass
+##        if not self.__preprocess_flag:
+##            for e in self.events:
+##                e.preprocess()
+##            self.__preprocess_flag = True
+##        else:
+##            pass
+    
+
+    @property
+    def period(self,):
+        return(self[0]['PERIOD'])
+
+
     @property
     def start(self,):
         return(self[0]['GAMECLOCK'])
@@ -575,11 +623,6 @@ class Events(GameSubpartBasic):
 
 
     @property
-    def period(self,):
-        return(self[0]['PERIOD'])
-
-
-    @property
     def players(self,):
         return(self[0]['PlayersOnCourt'])
 
@@ -587,16 +630,6 @@ class Events(GameSubpartBasic):
     @property
     def ind(self,):
         return(self._ind)
-
-
-    def preprocess(self,):
-        pass
-##        if not self.__preprocess_flag:
-##            for e in self.events:
-##                e.preprocess()
-##            self.__preprocess_flag = True
-##        else:
-##            pass
 
 
 class Event(dict):
