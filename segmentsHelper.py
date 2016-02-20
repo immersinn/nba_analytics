@@ -1,4 +1,7 @@
 
+import numpy
+import pandas
+
 
 def matchEventsMoments(game_segments):
 
@@ -6,15 +9,16 @@ def matchEventsMoments(game_segments):
     seg_ssq = {}
     for k in game_segments._moments:
         seg_ssq[k.ind] = {'Start' : k.start,
-                          'Stop' : k.end,
+                          'End' : k.end,
                           'Quarter' : k.period}
 
     # Play by Play meta
     pbp_ssq = {}
     for k in game_segments._events:
         pbp_ssq[k.ind] = {'Start' : k.start,
-                          'Stop' : k.end,
-                          'Quarter' : k.period}
+                          'End' : k.end,
+                          'Quarter' : k.period,
+                          'Type': k.event_type}
         
     # Find Matches
     matches = []
@@ -27,9 +31,20 @@ def matchEventsMoments(game_segments):
         pbps = {k:v for k,v in pbp_ssq.items() if v['Quarter'] == q}
         s_keys = sorted(segs.keys())
         p_keys = sorted(pbps.keys())
-        # Last event of a quarter is always with the
-        # last segment of a quarter
-        matches.append((p_keys[-1], s_keys[-1]))
+        # Last events of a quarter is always with the
+        # last moment of a quarter because last events
+        # includes 'End of Period' event
+        s = pbps[p_keys[-1]]['Start'] \
+            if pbps[p_keys[-1]]['Start'] >= segs[s_keys[-1]]['Start'] \
+            else segs[s_keys[-1]]['Start']
+        e = pbps[p_keys[-1]]['End'] \
+            if pbps[p_keys[-1]]['End'] <= segs[s_keys[-1]]['End'] \
+            else segs[s_keys[-1]]['End']
+        matches.append({'EventsId' : p_keys[-1],
+                        'MomentId' : s_keys[-1],
+                        'Start' : s,
+                        'End' : e,
+                        'Period' : pbps[p_keys[-1]]['Quarter']})
         e_matched.append(p_keys[-1])
         s_matched.append(s_keys[-1])
         cur_seg_ind = -2
@@ -37,23 +52,32 @@ def matchEventsMoments(game_segments):
         for pk in reversed(p_keys[:-1]):
             tmp_seg_ind = cur_seg_ind
             cur_pbp = pbps[pk]
+            if cur_pbp['Type'] != 'REGULAR_PLAY':
+                continue
             while True:
                 if abs(tmp_seg_ind) > len(s_keys):
                     break
                 cur_seg = segs[s_keys[tmp_seg_ind]]
-
                 # Check to see if start time of either current portion resides
                 # within range of other portion
                 if cur_seg['Start'] <= cur_pbp['Start'] and \
-                   cur_seg['Start'] >= cur_pbp['Stop']:
-                    matches.append((pk, s_keys[tmp_seg_ind]))
+                   cur_seg['Start'] >= cur_pbp['End']:
+                    matches.append({'EventsId' : pk,
+                                    'MomentId' : s_keys[tmp_seg_ind],
+                                    'Start' : cur_pbp['Start'],
+                                    'End' : cur_pbp['End'],
+                                    'Period' : cur_pbp['Quarter']})
                     e_matched.append(pk)
                     s_matched.append(s_keys[tmp_seg_ind])
                     cur_seg_ind = tmp_seg_ind - 1
                     break
                 elif cur_pbp['Start'] <= cur_seg['Start'] and \
-                     cur_pbp['Start'] >= cur_seg['Stop']:
-                    matches.append((pk, s_keys[tmp_seg_ind]))
+                     cur_pbp['Start'] >= cur_seg['End']:
+                    matches.append({'EventsId' : pk,
+                                    'MomentId' : s_keys[tmp_seg_ind],
+                                    'Start' : int(numpy.ceil(cur_seg['Start'])),
+                                    'End' : int(numpy.floor(cur_seg['End'])),
+                                    'Period' : cur_seg['Quarter']})
                     e_matched.append(pk)
                     s_matched.append(s_keys[tmp_seg_ind])
                     cur_seg_ind = tmp_seg_ind - 1
@@ -65,43 +89,23 @@ def matchEventsMoments(game_segments):
     s_not_matched = set(seg_ssq.keys()).difference(s_matched)
 
     for enm in e_not_matched:
-        matches.append((enm, -1))
+        matches.append({'EventsId' :enm,
+                        'MomentId' : -1,
+                        'Start' : pbp_ssq[enm]['Start'],
+                        'End' : pbp_ssq[enm]['End'],
+                        'Period' : pbp_ssq[enm]['Quarter']})
     for snm in s_not_matched:
-        matches.append((-1, snm))
+        matches.append({'EventsId' : -1,
+                        'MomentId' : snm,
+                        'Start' : int(numpy.ceil(seg_ssq[snm]['Start'])),
+                        'End' : int(numpy.floor(seg_ssq[snm]['End'])),
+                        'Period' : seg_ssq[snm]['Quarter']})
+
+    matches = pandas.DataFrame(matches, dtype=int)
+    matches.sort_index(by=['Period', 'Start', 'EventsId'],
+                       ascending = [True, False, True],
+                       inplace=True)
+    matches.index = range(matches.shape[0])
     
     return(matches)
 
-
-def mergeEventsMoments(events, segments):
-    """
-    Want this format:
-    
-    segment {'moment' : moment_data,
-             'events' : events_data,
-             'SegmentInfo' : {},
-             'PlayerInfo' : {}
-                 }
-
-    """
-
-    matches = matchEventsMoments(events, moments)
-    paired_eve_mom = []
-
-    for e,s in matches:
-        
-        if e > -1 and s > -1:
-            new = {'eid' : e, 'events' : events[e],
-                   'mid' : s, 'moment' : moments[s],
-                   'Quarter' : events[e]['Quarter']}
-        elif e == -1:
-            new = {'eid' : -1, 'events' : None,
-                   'mid' : s, 'moment' : moments[s],
-                   'Quarter' : moments[s]['Quarter']}
-        elif s == -1:
-            new = {'eid' : e, 'events' : events[e],
-                   'mid' : -1, 'moment' : None,
-                   'Quarter' : events[e]['Quarter']}
-            
-        paired_eve_mom.append(new)
-
-    return(paired_eve_mom)

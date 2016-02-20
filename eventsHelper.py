@@ -121,7 +121,6 @@ def findNameInLine(names, d, method):
 
 
 def matchPlayers2PBPNames(players, pbp_names):
-
     for v in players:
         n = v['name']
         n = n.split()
@@ -713,6 +712,11 @@ def playersForEventsQuarter(qes, team, lookup, team_names):
                     p = s['Player']
                     players[i].update([p])
                     for j in reversed(list(range(i))):
+                        if qes[j]['Player'] != p:
+                            players[j].update([p])
+                        else:
+                            break
+                    for j in range(i+1, len(qes)):
                         if qes[j]['Player'] != p:
                             players[j].update([p])
                         else:

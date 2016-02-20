@@ -100,7 +100,7 @@ class MomentsPreprocess:
                 mom = initSubMoment(m)
                 if mom.shape != (0,0):
                     e.append(m['event_id'])
-                    p.append(pandas.unique(mom.player_id))
+                    p.append(sorted(pandas.unique(mom.player_id)))
                     moments[m['event_id']] = mom
 
         self.meta = pandas.merge(self.meta,
@@ -112,27 +112,6 @@ class MomentsPreprocess:
     def momentsFromParts(self,):
         self.findMomentParts()
         self.mergeMomentParts()
-
-
-    def mergeMomentParts(self,):
-        meta = []
-        moments = {}
-        for s in pandas.unique(self.meta.Segment):
-            met = self.meta[self.meta.Segment==s]
-            eids = met.EventId.tolist()
-            met = mergeMeta(s, met)
-            mom = mergeAndCleanParts({k : m for (k,m) in list(self.moments.items()) \
-                                      if k in eids})
-            if mom.shape[0] > 0:
-                met['DataStartTime'] = max(mom.game_clock)
-                met['DataEndTime'] = min(mom.game_clock)
-                meta.append(met)
-                moments[s] = mom
-
-        self.meta = pandas.DataFrame({k : m[k] \
-                                      for k in META_NEW_ATTRS} \
-                                     for m in meta)
-        self.moments = moments
 
 
     def findMomentParts(self,):
@@ -159,6 +138,27 @@ class MomentsPreprocess:
             pandas.DataFrame(data = {'Segment' : segments}))
 
 
+    def mergeMomentParts(self,):
+        meta = []
+        moments = {}
+        for s in pandas.unique(self.meta.Segment):
+            met = self.meta[self.meta.Segment==s]
+            eids = met.EventId.tolist()
+            met = mergeMeta(s, met)
+            mom = mergeAndCleanParts({k : m for (k,m) in list(self.moments.items()) \
+                                      if k in eids})
+            if mom.shape[0] > 0:
+                met['DataStartTime'] = max(mom.game_clock)
+                met['DataEndTime'] = min(mom.game_clock)
+                meta.append(met)
+                moments[s] = mom
+
+        self.meta = pandas.DataFrame({k : m[k] \
+                                      for k in META_NEW_ATTRS} \
+                                     for m in meta)
+        self.moments = moments
+
+
     def samePeriod(self,):
         same_period = [self.meta.Period[i] == \
                        self.meta.Period[i-1] \
@@ -169,8 +169,8 @@ class MomentsPreprocess:
 
 
     def samePlayers(self,):
-        same_players = [list(self.meta.PlayerIds[i]) == \
-                        list(self.meta.PlayerIds[i-1]) \
+        same_players = [list(sorted(self.meta.PlayerIds[i])) == \
+                        list(sorted(self.meta.PlayerIds[i-1])) \
                         for i in range(1, self.meta.shape[0])]
         same_players.insert(0, True)
         self.meta = self.meta.join(\

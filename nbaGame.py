@@ -7,6 +7,7 @@ from .dataFieldNames import *
 
 from importlib import reload
 reload(eventsHelper)
+reload(momentsHelper)
 reload(segmentsHelper)
 
 
@@ -191,14 +192,14 @@ class GameSegments(GameSubpartBasic):
 
     
     def _align_moments_events(self,):
-        self._ms_matches = segmentsHelper.matchEventsMoments(self)
+        self._matches = segmentsHelper.matchEventsMoments(self)
 
 
     def _init_segments(self,):
         self._align_moments_events()
         self.segments = []
-        for i,es in enumerate(self._ms_matches):
-            e, s = es
+        for i,(e,s) in enumerate(zip(list(self._matches.EventsId),
+                                     list(self._matches.MomentId))):
             if e > -1 and s > -1:
                 new = Segment(sid=i,
                               eid=e, events=self._events[e],
@@ -597,8 +598,18 @@ class Events(GameSubpartBasic):
         pass
 
 
+    def _determine_events_type(self,):
+        if self.events[0]['Event'] in ['SUB_IN', 'SUB_OUT']:
+            self._event_type = 'SUB'
+        elif self.events[0]['Event'] == 'TIMEOUT' \
+             and len(self.events) == 1:
+            self._event_type = 'TIMEOUT'
+        else:
+            self._event_type = 'REGULAR_PLAY'       
+
+
     def preprocess(self,):
-        pass
+        self._determine_events_type()
 ##        if not self.__preprocess_flag:
 ##            for e in self.events:
 ##                e.preprocess()
@@ -630,6 +641,11 @@ class Events(GameSubpartBasic):
     @property
     def ind(self,):
         return(self._ind)
+
+
+    @property
+    def event_type(self,):
+        return(self._event_type)
 
 
 class Event(dict):
