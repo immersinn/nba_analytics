@@ -191,7 +191,9 @@ def detEventType(event_line):
     13 --> quarter end / game end
     """
 
-    if event_line.EVENTMSGTYPE == 1:
+    if event_line.EVENTMSGTYPE == -1:
+        state = 'BREAK'
+    elif event_line.EVENTMSGTYPE == 1:
         state = 'MadeShot'
     elif event_line.EVENTMSGTYPE == 2:
         state = 'MissShot'
@@ -792,76 +794,79 @@ def splitEventsBySubsQuarters(events):
 ####################################################
 
 
-def detEventType(event_line):
-    """
-    event message types and select action types:
-
-    1 --> shot made
-    2 --> shot missed
-    3 --> free throw make and miss
-    4 --> rebound
-    5 --> turnover
-        1 --> bad pass + steal
-        2 --> lost ball + steal
-        3 -->
-        4 --> traveling
-        5 --> foul turnover
-        11 --> shot clock
-    6 --> (offensive, shooting, etc) foul
-    7 --> Violation
-        2 --> Defensive Goaltending
-        5 --> Kicked Ball
-    8 --> sub
-    9 --> Full timeout
-    10 --> jump ball
-    11 --> ???
-    12 --> quarter start
-    13 --> quarter end / game end
-    """
-
-    if event_line.EVENTMSGTYPE == 1:
-##        if 'Event' == 'ASSIST':
-##            state = 'Assist'
-##        else:
-##            state = 'MadeShot'
-        state = 'MadeShot'
-    elif event_line.EVENTMSGTYPE == 2:
-        state = 'MissShot'
-    elif event_line.EVENTMSGTYPE == 3:
-        state = 'FreeThrow'
-    elif event_line.EVENTMSGTYPE == 4:
-        state = 'Rebound'
-    elif event_line.EVENTMSGTYPE == 5:
-        state = 'Turnover'
-    elif event_line.EVENTMSGTYPE == 6:
-        state = 'Foul'
-    elif event_line.EVENTMSGTYPE == 7:
-        state = 'Violation'
-    elif event_line.EVENTMSGTYPE == 8:
-        state = 'Sub'
-    elif event_line.EVENTMSGTYPE == 9:
-        state = 'Timeout'
-    elif event_line.EVENTMSGTYPE == 10:
-        state = 'JumpBall'
-    elif event_line.EVENTMSGTYPE == 11:
-        state = 'UKWN'
-    elif event_line.EVENTMSGTYPE == 12:
-        state = 'QuarterStart'
-    elif event_line.EVENTMSGTYPE == 13:
-        state = 'QuarterEnd'
-    else:
-        state = event_line.EVENTMSGTYPE
-    return(state)
+##def detEventType(event_line):
+##    """
+##    event message types and select action types:
+##
+##    1 --> shot made
+##    2 --> shot missed
+##    3 --> free throw make and miss
+##    4 --> rebound
+##    5 --> turnover
+##        1 --> bad pass + steal
+##        2 --> lost ball + steal
+##        3 -->
+##        4 --> traveling
+##        5 --> foul turnover
+##        11 --> shot clock
+##    6 --> (offensive, shooting, etc) foul
+##    7 --> Violation
+##        2 --> Defensive Goaltending
+##        5 --> Kicked Ball
+##    8 --> sub
+##    9 --> Full timeout
+##    10 --> jump ball
+##    11 --> ???
+##    12 --> quarter start
+##    13 --> quarter end / game end
+##    """
+##
+##    if event_line.EVENTMSGTYPE == -1:
+##        state = 'BREAK'
+##    elif event_line.EVENTMSGTYPE == 1:
+####        if 'Event' == 'ASSIST':
+####            state = 'Assist'
+####        else:
+####            state = 'MadeShot'
+##        state = 'MadeShot'
+##    elif event_line.EVENTMSGTYPE == 2:
+##        state = 'MissShot'
+##    elif event_line.EVENTMSGTYPE == 3:
+##        state = 'FreeThrow'
+##    elif event_line.EVENTMSGTYPE == 4:
+##        state = 'Rebound'
+##    elif event_line.EVENTMSGTYPE == 5:
+##        state = 'Turnover'
+##    elif event_line.EVENTMSGTYPE == 6:
+##        state = 'Foul'
+##    elif event_line.EVENTMSGTYPE == 7:
+##        state = 'Violation'
+##    elif event_line.EVENTMSGTYPE == 8:
+##        state = 'Sub'
+##    elif event_line.EVENTMSGTYPE == 9:
+##        state = 'Timeout'
+##    elif event_line.EVENTMSGTYPE == 10:
+##        state = 'JumpBall'
+##    elif event_line.EVENTMSGTYPE == 11:
+##        state = 'UKWN'
+##    elif event_line.EVENTMSGTYPE == 12:
+##        state = 'QuarterStart'
+##    elif event_line.EVENTMSGTYPE == 13:
+##        state = 'QuarterEnd'
+##    else:
+##        state = event_line.EVENTMSGTYPE
+##    return(state)
 
 
 
 ####################
 
-class EventsFinder:
+class TransitionsFinder:
 
 
-    def __init__(self, events):
+    def __init__(self, events, null_event):
         self.events = events
+        self.null = null_event
         self.indx = 0
         self.max_indx = len(self.events)
         self.event_dict = {}
@@ -869,9 +874,11 @@ class EventsFinder:
         self.current = []
 
 
-    def getEvents(self,):
+    def getTransitions(self,):
         while self.indx < self.max_indx:
-            ne = SinglePosChangeFinder(self.events, self.indx)
+            ne = SinglePosChangeFinder(self.events,
+                                       self.null,
+                                       self.indx,)
             ne.getPosChange()
             self.current.extend(ne.transitions)
             self.indx = ne.indx + 1
@@ -879,9 +886,9 @@ class EventsFinder:
                 if self.current:
                     new = {}
                     new['Period'] = self.current[0]['period']
-                    new['StartTime'] = self.current[0]['gc']
-                    new['EndTime'] = self.current[-1]['gc']
-                    new['EventsData'] = self.current
+                    new['Start'] = self.current[0]['gc']
+                    new['End'] = self.current[-1]['gc']
+                    new['TransitionsData'] = self.current
                     self.event_dict[self.event_count] = new
                     self.event_count += 1
                     self.current = []
@@ -895,14 +902,16 @@ MAIN_EVENTS = ['MissShot',
                'Turnover',
                'Foul']
 STOP_EVENTS = ['QuarterEnd',
-               'Sub']
+               'Sub',
+               'BREAK']
 
 
 class SinglePosChangeFinder:
 
 
-    def __init__(self, events_inst, start_indx=0):
+    def __init__(self, events_inst, null_event, start_indx=0):
         self.events = events_inst
+        self.null = null_event
         self.indx = start_indx
         self.max_indx = len(events_inst)
         self.transitions = []
@@ -937,8 +946,10 @@ class SinglePosChangeFinder:
             index = self.indx
         if event:
             self.current = event
-        else:
+        elif index < len(self.events):
             self.current = self.events[index]
+        else:
+            self.current = self.null
 
 
     def evalState(self):
@@ -950,7 +961,7 @@ class SinglePosChangeFinder:
             self.evalTurnover()
         elif self.state == 'Foul':
             self.evalFoulShots()
-        elif self.state =='EOL':
+        elif self.state == 'EOL':
             pass
 
 
@@ -1099,6 +1110,9 @@ class SinglePosChangeFinder:
         elif detEventType(self.current) == 'Sub':
             self.indx = self.indx + 2 # Subs come in pairs now
             self.state = 'EOL'
+        elif detEventType(self.current) == 'BREAK':
+            self.state = 'EOL'
+            self.setCurrEvent()
         else:
             if self.state == 'MadeFoul':
                 self.addInboundsTransition()

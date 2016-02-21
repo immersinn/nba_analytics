@@ -234,12 +234,61 @@ class GameSegments(GameSubpartBasic):
             s.extractTransitions()
             all_transitions.extend(s.transitions)
         self.transition_graph = all_transitions
-        
+
+
+class GameMoments(GameSubpartBasic):
+
+
+    _SUB_TYPE_NAME = 'moments'
+
+
+    def __init__(self, movements_info, game_info, debug_mode=False):
+        self._data = movements_info
+        self._debug_mode = debug_mode
+        # something with game_info
+
+
+##    def __getitem__(self, i):
+##        return(GameSubpartBasic.__getitem__(self, 'moments', i,
+##                                            item_name = 'Moments'))
+
+
+    def preprocess(self, ):
+        self._create_moments()
+        self._data = None
+        self._pp_moments()
+
+
+    def _create_moments(self,):
+        mpp = momentsHelper.MomentsPreprocess(self._data,
+                                              debug_mode = self._debug_mode)
+        cols = mpp.meta.columns; cols = cols.insert(0, 'Index')
+        self.moments = [Moment(mom, met) for (mom, met) in \
+                        zip(list(mpp.moments.values()),
+                            [{k : v for (k,v) in zip(cols, record)} \
+                             for record in mpp.meta.to_records()])]
+        self._count = len(self.moments)
+
+
+    def _pp_moments(self,):
+        for m in self.moments:
+            m.preprocess()
 
 
 class GameEvents(GameSubpartBasic):
 
     _SUB_TYPE_NAME = 'events'
+    null_event = Event({'Event' : 'NONE',
+                        'Player' : '',
+                        'Team' : '',
+                        'DESCRIPTION' : 'NullEvent',
+                        'EVENTNUM' : int(),
+                        'EVENTMSGTYPE' : -1,
+                        'EVENTMSGACTIONTYPE' : int(),
+                        'PERIOD' : int(),
+                        'GAMECLOCK' : int(),
+                        })
+                        
 
     def __init__(self, pbp_info):
         self._init_attributes(pbp_info)
@@ -299,19 +348,15 @@ class GameEvents(GameSubpartBasic):
             self._create_events_indi()
             self._determine_periods()
             self._players_on_court()
+##            _ = self.transitions
             self._create_events_groups()
             for e in self.events:
                 e.preprocess()
+##            self._pair_events_transitions()
             self.__preprocess_flag = True
             
         else:
             pass
-
-
-    def getTransitions(self,):
-        ef = eventsHelper.EventsFinder(self._events)
-        ef.getEvents()
-        self.transition_dict = ef.event_dict
 
 
     def _determine_pbp_names(self,):
@@ -336,8 +381,6 @@ class GameEvents(GameSubpartBasic):
 
 
     def _players_on_court(self,):
-        # Edits individual events in-place,
-        # so no need to return anything
         eventsHelper.playersForEventsGame(self)
 
 
@@ -377,49 +420,30 @@ class GameEvents(GameSubpartBasic):
 
         self._events2event_list  = \
                       eventsHelper.splitEventsBySubsQuarters(self._events)
-##        self._count = len(self._events2event_list)
         self.events = [Events([self.ix(i) for i in el], j) \
                        for j,el in enumerate(self._events2event_list)]
 
 
+    def _pair_events_transitions(self,):
+        count = 0
+        for e in self.events:
+            if e.event_type in ['SUB', 'TIMEOUT']:
+                e.transitions = []
+            else:
+                e.transitions = self.transitions[count]['TransitionsData']
+                count += 1
+                
 
-class GameMoments(GameSubpartBasic):
+    @property
+    def transitions(self,):
+        if '_transitions' not in self.__dict__.keys():
+            print('Finding transitions for the first time...')
+            ef = eventsHelper.TransitionsFinder(self._events,
+                                                self.null_event)
+            ef.getTransitions()
+            self._transitions = ef.event_dict
+        return(self._transitions)
 
-
-    _SUB_TYPE_NAME = 'moments'
-
-
-    def __init__(self, movements_info, game_info, debug_mode=False):
-        self._data = movements_info
-        self._debug_mode = debug_mode
-        # something with game_info
-
-
-##    def __getitem__(self, i):
-##        return(GameSubpartBasic.__getitem__(self, 'moments', i,
-##                                            item_name = 'Moments'))
-
-
-    def preprocess(self, ):
-        self._create_moments()
-        self._data = None
-        self._pp_moments()
-
-
-    def _create_moments(self,):
-        mpp = momentsHelper.MomentsPreprocess(self._data,
-                                              debug_mode = self._debug_mode)
-        cols = mpp.meta.columns; cols = cols.insert(0, 'Index')
-        self.moments = [Moment(mom, met) for (mom, met) in \
-                        zip(list(mpp.moments.values()),
-                            [{k : v for (k,v) in zip(cols, record)} \
-                             for record in mpp.meta.to_records()])]
-        self._count = len(self.moments)
-
-
-    def _pp_moments(self,):
-        for m in self.moments:
-            m.preprocess()
 
 
 class Segment(GameSubpartBasic):
@@ -573,6 +597,16 @@ class Events(GameSubpartBasic):
 
 
     _SUB_TYPE_NAME = 'events'
+    null_event = Event({'Event' : 'NONE',
+                        'Player' : '',
+                        'Team' : '',
+                        'DESCRIPTION' : 'NullEvent',
+                        'EVENTNUM' : int(),
+                        'EVENTMSGTYPE' : -1,
+                        'EVENTMSGACTIONTYPE' : int(),
+                        'PERIOD' : int(),
+                        'GAMECLOCK' : int(),
+                        })
 
 
     def __init__(self, events, ind):#, player_info, players,):
@@ -610,6 +644,7 @@ class Events(GameSubpartBasic):
 
     def preprocess(self,):
         self._determine_events_type()
+        _ = self.transitions
 ##        if not self.__preprocess_flag:
 ##            for e in self.events:
 ##                e.preprocess()
@@ -646,6 +681,24 @@ class Events(GameSubpartBasic):
     @property
     def event_type(self,):
         return(self._event_type)
+
+
+    @property
+    def transitions(self,):
+        if '_transitions' not in self.__dict__.keys():
+            if self.event_type == 'SUB':
+                self._transitions = {}
+            else:
+##                print('Finding transitions for the first time...')
+                ef = eventsHelper.TransitionsFinder(self.events,
+                                                    self.null_event)
+                ef.getTransitions()
+                if len(ef.event_dict) == 1:
+                    self._transitions = ef.event_dict[0]
+                else:
+                    self._transitions = ef.event_dict
+        return(self._transitions)
+
 
 
 class Event(dict):
