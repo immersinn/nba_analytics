@@ -36,15 +36,17 @@ META_NEW_ATTRS = ['MomentId',
 class MomentsPreprocess:
 
 
-    def __init__(self, moments_data,
+    def __init__(self, game_moments,
                  segment_criteria = 'Player',
                  debug_mode = False):
         self.sc = segment_criteria
-        self.raw = moments_data
+        self.raw = game_moments._data
+        self.team_info = game_moments.team_info
         self.orderMomentsByTimestamp()
         if not debug_mode:
             self.buildMeta()
             self.buildMoments()
+            self.updateMeta()
 
 
     def orderMomentsByTimestamp(self,):
@@ -184,6 +186,23 @@ class MomentsPreprocess:
         overlap.insert(0, True)
         self.meta = self.meta.join(\
             pandas.DataFrame(data = {'Overlap' : overlap}))
+
+
+    def updateMeta(self,):
+        """
+        'PlayerIds'
+        """
+        pids = self.meta.PlayerIds.tolist()
+        hpids = []; vpids = [];
+        home = set(self.team_info['home']['players'])
+        away = set(self.team_info['away']['players'])
+        for p in pids:
+            hpids.append(list(home.intersection(p)))
+            vpids.append(list(away.intersection(p)))
+        self.meta = self.meta.join(\
+            pandas.DataFrame(data = {'HomePlayers' : hpids,
+                                     'AwayPlayers' : vpids}))
+        
 
 
 ###################################

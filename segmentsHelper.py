@@ -75,8 +75,8 @@ def matchEventsMoments(game_segments):
                      cur_pbp['Start'] >= cur_seg['End']:
                     matches.append({'EventsId' : pk,
                                     'MomentId' : s_keys[tmp_seg_ind],
-                                    'Start' : int(numpy.ceil(cur_seg['Start'])),
-                                    'End' : int(numpy.floor(cur_seg['End'])),
+                                    'Start' : formatMomentTime(cur_seg['Start'], 'start'),
+                                    'End' : formatMomentTime(cur_seg['End'], 'end'),
                                     'Period' : cur_seg['Quarter']})
                     e_matched.append(pk)
                     s_matched.append(s_keys[tmp_seg_ind])
@@ -97,8 +97,8 @@ def matchEventsMoments(game_segments):
     for snm in s_not_matched:
         matches.append({'EventsId' : -1,
                         'MomentId' : snm,
-                        'Start' : int(numpy.ceil(seg_ssq[snm]['Start'])),
-                        'End' : int(numpy.floor(seg_ssq[snm]['End'])),
+                        'Start' : formatMomentTime(seg_ssq[snm]['Start'], 'start'),
+                        'End' : formatMomentTime(seg_ssq[snm]['End'], 'end'),
                         'Period' : seg_ssq[snm]['Quarter']})
 
     matches = pandas.DataFrame(matches, dtype=int)
@@ -109,3 +109,9 @@ def matchEventsMoments(game_segments):
     
     return(matches)
 
+
+def formatMomentTime(time, sORe):
+    if sORe == 'start':
+        return(int(numpy.floor(time)))
+    elif sORe == 'end':
+        return(int(numpy.ceil(time)))

@@ -134,6 +134,9 @@ class GameSubpartBasic:
             return(0)
 
 
+class GameSubpartFull(GameSubpartBasic):
+
+
     def _init_attrs(self, **kargs):
         if 'game_info' in list(kargs.keys()):
             self._set_game_info(kargs['game_info'])
@@ -154,17 +157,52 @@ class GameSubpartBasic:
             setattr(self, k, v)
 
 
-class GameSegments(GameSubpartBasic):
+    def _init_game_attributes(self, game_info):
+        ha_dict = {'home' : int(game_info['game_stats']['HOME_TEAM_ID'][0]),
+                   'away' : int(game_info['game_stats']['VISITOR_TEAM_ID'][0])}
+        ha_rev_dict = {game_info['game_stats']['HOME_TEAM_ID'][0] : 'home',
+                       game_info['game_stats']['VISITOR_TEAM_ID'][0] : 'away'}
+        team_info_dict = {ha_rev_dict[_id] : {'id' : _id,
+                                              'name' : n, 'city' : c,
+                                              'nickname' : nn, 'abb' : a} for \
+                          (_id, n, c, nn, a) in zip(game_info['team_stats_adv']['TEAM_ID'],
+                                                    game_info['team_stats_adv']['TEAM_NAME'],
+                                                    game_info['team_stats_adv']['TEAM_CITY_NAME'],
+                                                    game_info['team_stats_adv']['TEAM_NICKNAME'],
+                                                    game_info['team_stats_adv']['TEAM_ABBREVIATION'])
+                          }
+        city_rev_lookup = {team_info_dict[k]['city'] : team_info_dict[k]['id'] \
+                           for k in list(team_info_dict.keys())}
+        player_info_list = [{'pid' : _id,
+                            'name' : n,
+                           'city' : c,
+                           'team_id' : city_rev_lookup[c],
+                           'hORa' : ha_rev_dict[city_rev_lookup[c]]} for \
+                            (_id, n, c) in zip(game_info['player_stats_adv']['PLAYER_ID'],
+                                               game_info['player_stats_adv']['PLAYER_NAME'],
+                                               game_info['player_stats_adv']['TEAM_CITY'])
+                            ]
+        for k in list(team_info_dict.keys()):
+            team_info_dict[k]['players'] = [p['pid'] for p in player_info_list if \
+                                            p['team_id'] == team_info_dict[k]['id']]
+            team_info_dict[k]['starters'] = team_info_dict[k]['players'][:5]
+            
+        self.gid = game_info['game_id']
+        self.ha = ha_dict
+        self.team_info = team_info_dict
+        self.player_info = player_info_list
+
+
+class GameSegments(GameSubpartFull):
 
 
     _SUB_TYPE_NAME = 'segments'
 
 
-    def __init__(self, moments, pbp,
-                 game_info, player_info):
-        
-##        self._init_attrs(game_info = game_info,
-##                         player_info = player_info)
+    def __init__(self, game_info,
+                 moments, pbp):
+
+        self._init_game_attributes(game_info)
         
         if type(moments) == GameMoments:
             self._moments = moments
@@ -184,11 +222,10 @@ class GameSegments(GameSubpartBasic):
         self.__preprocess_flag = False
 
 
-    def _init_moments_events(self, game_info, player_info, moments, pbp):
+    def _init_moments_events(self, game_info, moments, pbp):
 
-        self._moments = GameMoments(moments,
-                                    game_info)
-        self._events = GameEvents(pbp)
+        self._moments = GameMoments(game_info, moments)
+        self._events = GameEvents(game_info, pbp)
 
     
     def _align_moments_events(self,):
@@ -236,16 +273,16 @@ class GameSegments(GameSubpartBasic):
         self.transition_graph = all_transitions
 
 
-class GameMoments(GameSubpartBasic):
+class GameMoments(GameSubpartFull):
 
 
     _SUB_TYPE_NAME = 'moments'
 
 
-    def __init__(self, movements_info, game_info, debug_mode=False):
+    def __init__(self, game_info, movements_info, debug_mode=False):
+        self._init_game_attributes(game_info)
         self._data = movements_info
         self._debug_mode = debug_mode
-        # something with game_info
 
 
 ##    def __getitem__(self, i):
@@ -260,8 +297,9 @@ class GameMoments(GameSubpartBasic):
 
 
     def _create_moments(self,):
-        mpp = momentsHelper.MomentsPreprocess(self._data,
+        mpp = momentsHelper.MomentsPreprocess(self,
                                               debug_mode = self._debug_mode)
+##        self._meta = mpp.meta
         cols = mpp.meta.columns; cols = cols.insert(0, 'Index')
         self.moments = [Moment(mom, met) for (mom, met) in \
                         zip(list(mpp.moments.values()),
@@ -275,7 +313,7 @@ class GameMoments(GameSubpartBasic):
             m.preprocess()
 
 
-class GameEvents(GameSubpartBasic):
+class GameEvents(GameSubpartFull):
 
     _SUB_TYPE_NAME = 'events'
     null_event = Event({'Event' : 'NONE',
@@ -290,9 +328,9 @@ class GameEvents(GameSubpartBasic):
                         })
                         
 
-    def __init__(self, pbp_info):
-        self._init_attributes(pbp_info)
-        self.pbp = eventsHelper.preprocessPbp(pbp_info['play_by_play'])
+    def __init__(self, game_info, pbp_info):
+        self._init_game_attributes(game_info)
+        self.pbp = eventsHelper.preprocessPbp(pbp_info)
         self.__preprocess_flag = False
         
     
@@ -305,42 +343,7 @@ class GameEvents(GameSubpartBasic):
         return(GameSubpartBasic.__getitem__(self, i,
                                             item_key = '_events'))
 ##                                            item_name = 'Individual Events'))
-
-
-    def _init_attributes(self, pbp_info):
-        ha_dict = {'home' : pbp_info['game_stats']['HOME_TEAM_ID'][0],
-                   'away' : pbp_info['game_stats']['VISITOR_TEAM_ID'][0]}
-        ha_rev_dict = {pbp_info['game_stats']['HOME_TEAM_ID'][0] : 'home',
-                       pbp_info['game_stats']['VISITOR_TEAM_ID'][0] : 'away'}
-        team_info_dict = {ha_rev_dict[_id] : {'id' : _id,
-                                              'name' : n, 'city' : c,
-                                              'nickname' : nn, 'abb' : a} for \
-                          (_id, n, c, nn, a) in zip(pbp_info['team_stats_adv']['TEAM_ID'],
-                                                    pbp_info['team_stats_adv']['TEAM_NAME'],
-                                                    pbp_info['team_stats_adv']['TEAM_CITY_NAME'],
-                                                    pbp_info['team_stats_adv']['TEAM_NICKNAME'],
-                                                    pbp_info['team_stats_adv']['TEAM_ABBREVIATION'])
-                          }
-        city_rev_lookup = {team_info_dict[k]['city'] : team_info_dict[k]['id'] \
-                           for k in list(team_info_dict.keys())}
-        player_info_list = [{'pid' : _id,
-                            'name' : n,
-                           'city' : c,
-                           'team_id' : city_rev_lookup[c],
-                           'hORa' : ha_rev_dict[city_rev_lookup[c]]} for \
-                            (_id, n, c) in zip(pbp_info['player_stats_adv']['PLAYER_ID'],
-                                               pbp_info['player_stats_adv']['PLAYER_NAME'],
-                                               pbp_info['player_stats_adv']['TEAM_CITY'])
-                            ]
-        for k in list(team_info_dict.keys()):
-            team_info_dict[k]['players'] = [p['pid'] for p in player_info_list if \
-                                            p['team_id'] == team_info_dict[k]['id']]
-            team_info_dict[k]['starters'] = team_info_dict[k]['players'][:5]
-            
-        self.ha = ha_dict
-        self.team_info = team_info_dict
-        self.player_info = player_info_list
-    
+   
 
     def preprocess(self,):
         if not self.__preprocess_flag:
@@ -534,7 +537,7 @@ class Moment(GameSubpartBasic):
         if '_transitions' not in self.__dict__.keys():
             self._transitions = momentsCalculations.\
                                 determineBallTransitions(self._data,
-                                                         self.players,
+                                                         self._player_ids,
                                                          self.ballPosessions)
         return(self._transitions)
                                                                 
@@ -571,8 +574,13 @@ class Moment(GameSubpartBasic):
 
 
     @property
-    def players(self,):
-        return(list(self._meta['PlayerIds']))
+    def players(self, ):
+        return({'home' : list(self._meta['HomePlayers']),
+                'away' : list(self._meta['AwayPlayers'])})
+
+    @property
+    def _player_ids(self,):
+        return(self._meta['PlayerIds'])
 
 
     @property
@@ -694,7 +702,7 @@ class Events(GameSubpartBasic):
                                                     self.null_event)
                 ef.getTransitions()
                 if len(ef.event_dict) == 1:
-                    self._transitions = ef.event_dict[0]
+                    self._transitions = ef.event_dict[0]['TransitionsData']
                 else:
                     self._transitions = ef.event_dict
         return(self._transitions)
