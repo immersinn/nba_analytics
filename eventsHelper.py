@@ -21,6 +21,15 @@ HEADER = ["GAME_ID",
           "SCORE",
           "SCOREMARGIN"]
 
+TRANSITIONS_HEADERS_LOOKUP = {'from' : 'FromPlayer',
+                              'to' : 'ToPlayer',
+                              'gc' : 'GameClock',
+                              'period' : 'Period',
+                              'ttype' : 'TransitionType',
+                              'eventnum' : 'EventId'}
+
+EMPTY_TRANSITIONS_PLACEHOLDER = pandas.DataFrame()
+
 
 def preprocessPbp(pbp):
     pbp = pbpDict2Df(pbp)
@@ -814,14 +823,20 @@ class TransitionsFinder:
                                        self.indx,)
             ne.getPosChange()
             self.current.extend(ne.transitions)
-            self.indx = ne.indx + 1
+            ##
+##            self.indx = ne.indx + 1
+            self.indx = ne.indx
+            ##
             if ne.state == 'EOL':
                 if self.current:
                     new = {}
                     new['Period'] = self.current[0]['period']
                     new['Start'] = self.current[0]['gc']
                     new['End'] = self.current[-1]['gc']
-                    new['TransitionsData'] = self.current
+                    td = pandas.DataFrame(self.current)
+                    td.columns = [TRANSITIONS_HEADERS_LOOKUP[c] \
+                                  for c in td.columns]
+                    new['TransitionsData'] = td
                     self.event_dict[self.event_count] = new
                     self.event_count += 1
                     self.current = []
@@ -894,8 +909,9 @@ class SinglePosChangeFinder:
             self.evalTurnover()
         elif self.state == 'Foul':
             self.evalFoulShots()
+            self.indx += 1
         elif self.state == 'EOL':
-            pass
+            self.indx += 1
 
 
     def getGameClock(self,):
@@ -913,33 +929,41 @@ class SinglePosChangeFinder:
             return(self.current.Player)
 
 
+    def getEventNum(self,):
+        return(self.current.EVENTNUM)
+
+
     def updateTransition(self,):
         overall = {'from' : self.fr_player,
                    'to' : self.to_player,
                    'ttype' : self.trans_type,
                    'period' : self.getQuarter(),
-                   'gc' : self.getGameClock()}
+                   'gc' : self.getGameClock(),
+                   'eventnum' : self.getEventNum()}
         self.transitions.append(overall)
         if self.trans_type.find('Rebound') > -1:
             self.transitions.append({'from' : 'REBOUND',
                                      'to' : self.to_player,
                                      'ttype' : 'Rebound',
                                      'period' : self.getQuarter(),
-                                     'gc' : self.getGameClock()})
+                                     'gc' : self.getGameClock(),
+                                     'eventnum' : self.getEventNum()})
 
 
     def addInboundsTransition(self,):
-        if self.state == 'MadeShot':
+        if self.state in ['MadeShot', 'Turnover']:
             self.transitions.append({'from' : self.fr_player,
                                      'to' : 'TBD',
-                                     'ttype' : 'MadeShot-Inbounds',
+                                     'ttype' : self.state + '-Inbounds',
                                      'period' : self.getQuarter(),
-                                     'gc' : self.getGameClock()})
+                                     'gc' : self.getGameClock(),
+                                     'eventnum' : self.getEventNum()})
         self.transitions.append({'from' : 'INBOUNDS',
                                  'to' : 'TBD',
                                  'ttype' : 'Inbounds',
                                  'period' : self.getQuarter(),
-                                 'gc' : self.getGameClock()})
+                                 'gc' : self.getGameClock(),
+                                 'eventnum' : self.getEventNum()})
 
 
     def evalMadeShot(self):
@@ -949,12 +973,15 @@ class SinglePosChangeFinder:
                                  'from' : self.fr_player,
                                  'ttype' : 'MadeShot',
                                  'period' : self.getQuarter(),
-                                 'gc' : self.getGameClock()})
+                                 'gc' : self.getGameClock(),
+                                 'eventnum' : self.getEventNum()})
         self.evalShootFoul()
         if self.state == 'Foul':
             self.evalFoulShots()
         else:
+            self.setCurrEvent()
             self.addInboundsTransition()
+        self.indx += 1
 
 
     def evalMissShot(self):
@@ -963,17 +990,20 @@ class SinglePosChangeFinder:
                                  'from' : self.fr_player,
                                  'ttype' : 'MissShot',
                                  'period' : self.getQuarter(),
-                                 'gc' : self.getGameClock()})
+                                 'gc' : self.getGameClock(),
+                                 'eventnum' : self.getEventNum()})
         self.evalShootFoul()
         if self.state == 'Foul':
             self.evalFoulShots()
         else:
+            self.evalBlock()
             self.evalRebound()
             if self.state == 'Transition':
                 self.updateTransition()
             else:
                 # Error
                 pass
+        self.indx += 1
 
 
     def evalTurnover(self,):
@@ -986,37 +1016,58 @@ class SinglePosChangeFinder:
                                  'from' : self.fr_player,
                                  'ttype' : 'Turnover',
                                  'period' : self.getQuarter(),
-                                 'gc' : self.getGameClock()})
+                                 'gc' : self.getGameClock(),
+                                 'eventnum' : self.getEventNum()})
 
         self.setCurrEvent(index = self.indx + 1)
+        
         if self.current.Event == 'STEAL':
             self.to_player = self.getPlayer()
+            self.trans_type = self.state + '-Steal'
+
+            self.transitions.append({'to' : self.to_player,
+                                     'from' : self.fr_player,
+                                     'ttype' : self.trans_type,
+                                     'period' : self.getQuarter(),
+                                     'gc' : self.getGameClock(),
+                                     'eventnum' : self.getEventNum()})
+            
             self.transitions.append({'to' : self.to_player,
                                      'from' : 'TURNOVER',
                                      'ttype' : 'Steal',
                                      'period' : self.getQuarter(),
-                                     'gc' : self.getGameClock()})
-            self.trans_type = self.state + '-Steal'
-            self.updateTransition()
+                                     'gc' : self.getGameClock(),
+                                     'eventnum' : self.getEventNum()})
+            self.indx += 1
         else:
+            self.setCurrEvent()
             self.addInboundsTransition()
+        self.indx += 1
 
 
     def evalAssist(self,):
         # Assist comes first in Events instance
         # Flagged as a MadeShot
         # Update indx to move focus to the actual shot
-        if self.current.Event == 'Assist':
+        if self.current.Event == 'ASSIST':
             fr_player = self.getPlayer()
             self.indx += 1
             self.setCurrEvent()
             to_player = self.getPlayer()
             self.transitions.append({'to' : to_player,
                                      'from' : fr_player,
-                                     'ttype' : 'Pass',
-                                     'tsubtype' : 'Assist',
+                                     'ttype' : 'PassAssist',
+##                                     'tsubtype' : 'Assist',
                                      'period' : self.getQuarter(),
-                                     'gc' : self.getGameClock()})
+                                     'gc' : self.getGameClock(),
+                                     'eventnum' : self.getEventNum()})
+
+
+    def evalBlock(self,):
+        self.setCurrEvent(index = self.indx + 1)
+        if self.current['Event'] == 'BLOCK':
+            # Just move on past it...
+            self.indx += 1
 
 
     def evalShootFoul(self):

@@ -8,6 +8,7 @@ from .dataFieldNames import *
 from importlib import reload
 reload(eventsHelper)
 reload(momentsHelper)
+reload(momentsCalculations)
 reload(segmentsHelper)
 
 
@@ -351,7 +352,7 @@ class GameEvents(GameSubpartFull):
             self._create_events_indi()
             self._determine_periods()
             self._players_on_court()
-##            _ = self.transitions
+##            _ = self.ballTransitions
             self._create_events_groups()
             for e in self.events:
                 e.preprocess()
@@ -433,12 +434,12 @@ class GameEvents(GameSubpartFull):
             if e.event_type in ['SUB', 'TIMEOUT']:
                 e.transitions = []
             else:
-                e.transitions = self.transitions[count]['TransitionsData']
+                e.transitions = self.ballTransitions[count]['TransitionsData']
                 count += 1
                 
 
     @property
-    def transitions(self,):
+    def ballTransitions(self,):
         if '_transitions' not in self.__dict__.keys():
             print('Finding transitions for the first time...')
             ef = eventsHelper.TransitionsFinder(self._events,
@@ -473,7 +474,7 @@ class Segment(GameSubpartBasic):
     def extractTransitions(self,):
         # The stuff that's currently in
         # "Match Ball Transitions to Posession Gaps"
-        self.transitions = {} # or []??
+        self.ballTransitions = {} # or []??
 
 
     @property
@@ -538,6 +539,7 @@ class Moment(GameSubpartBasic):
             self._transitions = momentsCalculations.\
                                 determineBallTransitions(self._data,
                                                          self._player_ids,
+                                                         self.period,
                                                          self.ballPosessions)
         return(self._transitions)
                                                                 
@@ -547,7 +549,7 @@ class Moment(GameSubpartBasic):
         if '_ball_poss' not in self.__dict__.keys():
             self._ball_poss = momentsCalculations.\
                               determineBallPosessions(self._data,
-                                                      self.players)
+                                                      self._player_ids)
         return(self._ball_poss)
 
 
@@ -652,7 +654,7 @@ class Events(GameSubpartBasic):
 
     def preprocess(self,):
         self._determine_events_type()
-        _ = self.transitions
+        _ = self.ballTransitions
 ##        if not self.__preprocess_flag:
 ##            for e in self.events:
 ##                e.preprocess()
@@ -692,10 +694,11 @@ class Events(GameSubpartBasic):
 
 
     @property
-    def transitions(self,):
+    def ballTransitions(self,):
         if '_transitions' not in self.__dict__.keys():
             if self.event_type == 'SUB':
-                self._transitions = {}
+                self._transitions = eventsHelper.\
+                                    EMPTY_TRANSITIONS_PLACEHOLDER
             else:
 ##                print('Finding transitions for the first time...')
                 ef = eventsHelper.TransitionsFinder(self.events,

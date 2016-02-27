@@ -6,14 +6,20 @@ import pandas
 
 
 def determineBallTransitions(df, pids,
-                             poss=list()):
-
+                             period = int(),
+                             poss = pandas.DataFrame()):
 
     indx_map = list(range(0,df.shape[0],11))
-    if not poss:
+    if poss.empty:
         poss = determineBallPosessions(df, pids)
 
-    poss = list(poss.Posession)
+    def convertVals(val):
+        if np.isnan(val):
+            return(int())
+        else:
+            return(int(val))
+
+    poss = [convertVals(p) for p in poss.Posession]
     
     from_list = []
     to_list = []
@@ -54,13 +60,17 @@ def determineBallTransitions(df, pids,
             if not start_indx:
                 start_indx = indx
             indx += 1
+
+    data_dict = {'FromPlayer' : from_list,
+                 'ToPlayer' : to_list,
+                 'StartGameClock' : start_time,
+                 'EndGameClock' : end_time,
+                 'StartIndx' : start_pass,
+                 'EndIndx' : end_pass}
+    if period:
+        data_dict['Period'] = [period for _ in range(len(from_list))]
                 
-    pos_ft = pandas.DataFrame(data = {'FromPlayer' : from_list,
-                                      'ToPlayer' : to_list,
-                                      'StartGameClock' : start_time,
-                                      'EndGameClock' : end_time,
-                                      'StartIndx' : start_pass,
-                                      'EndIndx' : end_pass})
+    pos_ft = pandas.DataFrame(data = data_dict)
     return(pos_ft)
 
 
@@ -89,6 +99,7 @@ def determineBallPosessions(df, pids,
 
     p = pandas.DataFrame(data  = {'GameClock' : df.game_clock[indx_map],
                                   'Posession' : p})
+    p.index = range(p.shape[0])
 
     return(p)
 
