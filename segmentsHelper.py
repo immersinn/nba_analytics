@@ -110,8 +110,198 @@ def matchEventsMoments(game_segments):
     return(matches)
 
 
+def matchEventsMomentsTransitions(s, method=''):
+
+    """
+        matches = mergeMatches(matches, matches_t3)
+        non_pass_pt = [p for (t,p) in matches]
+        events = [i for i in range(len(pos_events)) if i in non_pass_pt]
+        passes = [i for i in range(len(pos_events)) if i not in non_pass_pt]
+    """
+
+##    getEventsAndPasses(p2p_trans, pos_events)
+##    def getEventsAndPasses(transitions, pos_events)
+
+    # pos_events are from moments
+    # p2p_trans are from events
+    # go figure...
+
+    # both are expected to be dictionaries...
+    
+##    if not transitions:
+##        events = []
+##        passes = [i for i in range(len(pos_events))]
+##    elif not pos_events:
+##        events = []
+##        passes = []
+
+    if False:
+        pass
+    
+    else:
+
+        # Number of Transitions
+        nMomTrans = len(s.moment_ball_transitions)
+        nEveTrans = len(s.events_ball_transitions)
+
+        # First Pass: "Exact" Match
+        start = 0
+        matches = []
+        for et in s.events_ball_transitions:
+            for j, mt in enumerate(s.moment_ball_transitions[start:]):
+                if pbpPosMatch(et, mt):
+                    matches.append((et['ind'], mt['ind']))
+                    start = start + j + 1
+                    break
+
+
+        # Second Pass: Inbounds plays
+        matches_t2 = []
+        matched_trans = [i for (i,j) in matches]
+        unmatched = [i for i in range(nEveTrans) \
+                     if i not in set(matched_trans)]
+        for i in unmatched:
+            low = lastMatchBelow(matches, i)
+            high = firstMatchAbove(matches, i)
+            if high - low == 2:
+                matches_t2.append((i, low + 1))
+            else:
+                for j in range(low + 1, high):
+                    if inboundsMatch(s.events_ball_transitions[i],
+                                     s.moment_ball_transitions[j]):
+                        matches_t2.append((i,j))
+                        break
+
+        updateEventsInboundTransitions(s, matches_t2)
+        matches = mergeMatches(matches, matches_t2)
+
+
+        # Third Pass:  Everything else (hopefully)
+        matches_t3 = []
+        matched_trans = [i for (i,j) in matches]
+        unmatched = [i for i in range(nEveTrans) \
+                     if i not in set(matched_trans)]
+        for i in unmatched:
+            low = lastMatchBelow(matches, i)
+            high = firstMatchAbove(matches, i)
+            if high - low == 2:
+                matches_t2.append((i, low + 1))
+            else:
+                for j in range(low+1, high):
+                    if halfMatch(s.events_ball_transitions[i],
+                                 s.moment_ball_transitions[j]):
+                        matches_t3.append((i,j))
+                        break
+
+        matches = mergeMatches(matches, matches_t3)
+        non_pass_pt = [p for (t,p) in matches]
+
+
+        events = [i for i in range(nMomTrans) if i in non_pass_pt]
+        passes = [i for i in range(nMomTrans) if i not in non_pass_pt]
+    
+        ## Create complete list of transitions for Segment
+
+        # some stuff to do before:
+        # Create Pass events in the same format as pbp events
+        # With sufficient info to create an edge
+        for m_ind in passes:
+            updateMomentPassEvents(s.moment_ball_transitions[m_ind])
+            
+##        # Update edges for the game
+##        for p in passes:
+##            edges.append(extractSimpleEdgeData(p))
+##        for t in n2n_trans:
+##            edges.append(extractSimpleEdgeData(t))
+
+        ## Don't return anything; update segment directly
+
+        return(passes, events)
+
+
 def formatMomentTime(time, sORe):
     if sORe == 'start':
         return(int(numpy.floor(time)))
     elif sORe == 'end':
         return(int(numpy.ceil(time)))
+
+
+def pbpPosMatch(et, mt):
+    if et['FromPlayer'] == mt['FromPlayer'] and \
+       et['ToPlayer'] == mt['ToPlayer'] and \
+       abs(et['GameClock'] - mt['EndGameClock']) < 5:
+##       abs(et['GameClock'] - mt['StartGameClock']) < 3 and \
+            return(True)
+    else:
+        return(False)
+    
+
+def inboundsMatch(et, mt):
+    if et['FromPlayer'] == mt['FromPlayer'] and \
+       abs(et['GameClock'] - mt['EndGameClock']) < 7 and \
+       et['ToPlayer'] == 'TBD':
+            return(True)
+    else:
+        return(False)
+    
+    
+def halfMatch(et, mt):
+    if et['FromPlayer'] == mt['FromPlayer'] and \
+       abs(et['GameClock'] - mt['EndGameClock']) < 7:
+            return(True)
+    elif et['ToPlayer'] == mt['ToPlayer'] and \
+         abs(et['GameClock'] - mt['EndGameClock']) < 7:
+            return(True)
+    else:
+        return(False)
+    
+    
+def lastMatchBelow(matches, i):
+    last = 0
+    for t,p in matches:
+        if t < i:
+            last = p
+        else:
+            break
+    return(last)
+
+
+def firstMatchAbove(matches, i):
+    last = i
+    for t,p in matches:
+        if t > i:
+            last = p
+            break
+    return(last)
+
+
+def mergeMatches(matches0, matches1):
+    merged = []
+    m0_ind = 0
+    m1_ind = 0
+    while m0_ind < len(matches0) and m1_ind < len(matches1):
+        if matches0[m0_ind][0] < matches1[m1_ind][0]:
+            merged.append(matches0[m0_ind])
+            m0_ind += 1
+        else:
+            merged.append(matches1[m1_ind])
+            m1_ind += 1
+    for m in matches0[m0_ind:]:
+        merged.append(m)
+    for m in matches1[m1_ind:]:
+        merged.append(m)
+    return(merged)
+
+
+def updateEventsInboundTransition(s, inbounds_matches):
+    # transitions are data with 'TBD'
+    # pos_events are ball trans from movement data
+    # matches_t2 are (t, p) matches, where t is the trans index
+    # and p is the pos index
+    for ei, mi in inbounds_matches:
+        s.events_ball_transitions[ei]['ToPlayer'] = \
+        s.moment_ball_transitions[mi]['ToPlayer']
+
+
+def updateMomentPassEvents(tar):
+    tar['TransitionType'] = 'Pass'

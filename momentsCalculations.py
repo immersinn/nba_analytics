@@ -7,11 +7,11 @@ import pandas
 
 def determineBallTransitions(df, pids,
                              period = int(),
-                             poss = pandas.DataFrame()):
+                             poss_df = pandas.DataFrame()):
 
-    indx_map = list(range(0,df.shape[0],11))
-    if poss.empty:
-        poss = determineBallPosessions(df, pids)
+##    indx_map = list(range(0,df.shape[0],11))
+    if poss_df.empty:
+        poss_df = determineBallPosessions(df, pids)
 
     def convertVals(val):
         if np.isnan(val):
@@ -19,7 +19,9 @@ def determineBallTransitions(df, pids,
         else:
             return(int(val))
 
-    poss = [convertVals(p) for p in poss.Posession]
+    
+    poss = [convertVals(p) for p in poss_df.Posession]
+    time = list(poss_df.GameClock)
     
     from_list = []
     to_list = []
@@ -47,8 +49,8 @@ def determineBallTransitions(df, pids,
                 to_list.append(to_player)
                 start_pass.append(start_indx)
                 end_pass.append(end_indx)
-                start_time.append(df.game_clock[indx_map[start_indx]])
-                end_time.append(df.game_clock[indx_map[end_indx]])
+                start_time.append(time[start_indx])
+                end_time.append(time[end_indx])
                 
                 from_player = to_player
 
@@ -78,9 +80,9 @@ def determineBallTransitions(df, pids,
 def determineBallPosessions(df, pids,
                            max_dist=3, max_radius=5):
 
-    indx_map = list(range(0,df.shape[0],11))
     pbd = ballPlayerDists(df, pids)
-    radius = df.radius[indx_map]
+    radius = df.radius[list(range(0,df.shape[0],11))]
+    times = list(df.game_clock[list(range(0,df.shape[0],11))])
 
     # Helper funcs
     f = lambda x, y: True if x and y else False
@@ -92,16 +94,41 @@ def determineBallPosessions(df, pids,
     wp = [g(cp.columns[cp.ix[i,]]) for i in range(cp.shape[0])]
     p = [h(w,r) for (w,r) in zip(wp, rt)]
 
-    for i in range(1, len(p)-1):
-        if p[i]:
-            if not p[i-1] and not p[i+1]:
-                p[i] = None
+    p = removeShortPosessions(p, times)
 
-    p = pandas.DataFrame(data  = {'GameClock' : df.game_clock[indx_map],
+    p = pandas.DataFrame(data  = {'GameClock' : times,
                                   'Posession' : p})
     p.index = range(p.shape[0])
 
     return(p)
+
+
+def removeShortPosessions(p, t, method='new'):
+    if method == 'new':
+        # Remove "too short" posessions (lt 0.25 sec)
+        i = 0
+        while i < len(p):
+            if p[i]:
+                start = i
+                end = start
+                for j in range(start + 1, len(p)):
+                    if p[j]:
+                        end = j
+                    else:
+                        break
+                if t[start] - t[end] < 0.25:
+                    for j in range(start, end + 1):
+                        p[j] = None
+                i = end
+            i += 1
+    elif method == 'old':
+        # Remove "too short" posessions
+        for i in range(1, len(p)-1):
+            if p[i]:
+                if not p[i-1] and not p[i+1]:
+                    p[i] = None
+    return(p)
+    
 
 
 

@@ -26,6 +26,7 @@ TRANSITIONS_HEADERS_LOOKUP = {'from' : 'FromPlayer',
                               'gc' : 'GameClock',
                               'period' : 'Period',
                               'ttype' : 'TransitionType',
+                              'tsubtype' : 'TransSubType',
                               'eventnum' : 'EventId'}
 
 EMPTY_TRANSITIONS_PLACEHOLDER = pandas.DataFrame()
@@ -937,6 +938,7 @@ class SinglePosChangeFinder:
         overall = {'from' : self.fr_player,
                    'to' : self.to_player,
                    'ttype' : self.trans_type,
+                   'tsubtype' : "",
                    'period' : self.getQuarter(),
                    'gc' : self.getGameClock(),
                    'eventnum' : self.getEventNum()}
@@ -945,6 +947,7 @@ class SinglePosChangeFinder:
             self.transitions.append({'from' : 'REBOUND',
                                      'to' : self.to_player,
                                      'ttype' : 'Rebound',
+                                     'tsubtype' : "",
                                      'period' : self.getQuarter(),
                                      'gc' : self.getGameClock(),
                                      'eventnum' : self.getEventNum()})
@@ -955,12 +958,14 @@ class SinglePosChangeFinder:
             self.transitions.append({'from' : self.fr_player,
                                      'to' : 'TBD',
                                      'ttype' : self.state + '-Inbounds',
+                                     'tsubtype' : "",
                                      'period' : self.getQuarter(),
                                      'gc' : self.getGameClock(),
                                      'eventnum' : self.getEventNum()})
         self.transitions.append({'from' : 'INBOUNDS',
                                  'to' : 'TBD',
                                  'ttype' : 'Inbounds',
+                                 'tsubtype' : "",
                                  'period' : self.getQuarter(),
                                  'gc' : self.getGameClock(),
                                  'eventnum' : self.getEventNum()})
@@ -972,6 +977,7 @@ class SinglePosChangeFinder:
         self.transitions.append({'to' : 'SUCCESS',
                                  'from' : self.fr_player,
                                  'ttype' : 'MadeShot',
+                                 'tsubtype' : self.current.EVENTMSGACTIONTYPE,
                                  'period' : self.getQuarter(),
                                  'gc' : self.getGameClock(),
                                  'eventnum' : self.getEventNum()})
@@ -989,6 +995,7 @@ class SinglePosChangeFinder:
         self.transitions.append({'to' : 'FAIL',
                                  'from' : self.fr_player,
                                  'ttype' : 'MissShot',
+                                 'tsubtype' : "",
                                  'period' : self.getQuarter(),
                                  'gc' : self.getGameClock(),
                                  'eventnum' : self.getEventNum()})
@@ -1015,6 +1022,7 @@ class SinglePosChangeFinder:
         self.transitions.append({'to' : 'TURNOVER',
                                  'from' : self.fr_player,
                                  'ttype' : 'Turnover',
+                                 'tsubtype' : self.current.Event,
                                  'period' : self.getQuarter(),
                                  'gc' : self.getGameClock(),
                                  'eventnum' : self.getEventNum()})
@@ -1028,6 +1036,7 @@ class SinglePosChangeFinder:
             self.transitions.append({'to' : self.to_player,
                                      'from' : self.fr_player,
                                      'ttype' : self.trans_type,
+                                     'tsubtype' : "",
                                      'period' : self.getQuarter(),
                                      'gc' : self.getGameClock(),
                                      'eventnum' : self.getEventNum()})
@@ -1035,6 +1044,7 @@ class SinglePosChangeFinder:
             self.transitions.append({'to' : self.to_player,
                                      'from' : 'TURNOVER',
                                      'ttype' : 'Steal',
+                                     'tsubtype' : "",
                                      'period' : self.getQuarter(),
                                      'gc' : self.getGameClock(),
                                      'eventnum' : self.getEventNum()})
@@ -1056,8 +1066,8 @@ class SinglePosChangeFinder:
             to_player = self.getPlayer()
             self.transitions.append({'to' : to_player,
                                      'from' : fr_player,
-                                     'ttype' : 'PassAssist',
-##                                     'tsubtype' : 'Assist',
+                                     'ttype' : 'Pass',
+                                     'tsubtype' : 'Assist',
                                      'period' : self.getQuarter(),
                                      'gc' : self.getGameClock(),
                                      'eventnum' : self.getEventNum()})
