@@ -12,6 +12,187 @@ reload(momentsCalculations)
 reload(segmentsHelper)
 
 
+
+class Event(dict):
+
+    """
+    game clock, shot clock, quarter, player id / name, event type,
+    event subtype, pbp sequence number, original pbp text
+    """
+
+    __slots__ = ()
+
+
+    def preprocess(self,):
+        pass
+
+
+    @property
+    def DESCRIPTION(self,):
+        return(self['DESCRIPTION'])
+
+    @property
+    def Event(self,):
+        return(self['Event'])
+
+    @property
+    def EVENTMSGACTIONTYPE(self,):
+        return(self['EVENTMSGACTIONTYPE'])
+
+    @property
+    def EVENTMSGTYPE(self,):
+        return(self['EVENTMSGTYPE'])
+
+    @property
+    def EVENTNUM(self,):
+        return(self['EVENTNUM'])
+
+    @property
+    def GAMECLOCK(self,):
+        return(self['GAMECLOCK'])
+
+    @property
+    def PERIOD(self,):
+        return(self['PERIOD'])
+
+    @property
+    def pid(self,):
+        return(self['pid'])
+    
+    @property
+    def Player(self,):
+        return(self['Player'])
+
+    @property
+    def PlayersOnCourt(self,):
+        return(self['PlayersOnCourt'])
+
+    @property
+    def Team(self,):
+        return(self['Team'])
+
+
+class EventBallTransition(dict):
+
+    """
+    Should contain all info related to a ball transition
+    Should allow for callable attributes, like Event Class
+    """
+
+    __slots__ = ()
+
+
+    def preprocess(self,):
+        pass
+
+    @property
+    def ind(self,):
+        return(self['ind'])
+
+    @property
+    def Period(self,):
+        return(self['Period'])
+
+    @property
+    def GameClock(self,):
+        # Event Trans Only to start
+        return(self['GameClock'])
+
+    @property
+    def FromPlayer(self,):
+        return(self['FromPlayer'])
+
+    @property
+    def ToPlayer(self,):
+        return(self['ToPlayer'])
+
+    @property
+    def TransitionType(self,):
+        # Event Trans Only to start
+        return(self['TransitionType'])
+
+    @property
+    def TransSubType(self,):
+        # Event Trans Only to start
+        return(self['TransSubType'])
+
+
+class MomentBallTransition(dict):
+
+    """
+    Should contain all info related to a ball transition
+    Should allow for callable attributes, like Event Class
+    """
+
+    __slots__ = ()
+
+
+
+    def preprocess(self,):
+        pass
+
+    @property
+    def ind(self,):
+        return(self['ind'])
+
+    @property
+    def StartIndx(self,):
+        # Moment Trans Only to start
+        return(self['StartIndx'])
+
+    @property
+    def EndIndx(self,):
+        # Moment Trans Only to start
+        return(self['EndIndx'])
+
+    @property
+    def Period(self,):
+        return(self['Period'])
+
+    @property
+    def StartGameClock(self,):
+        # Moment Trans Only to start
+        return(self['StartGameClock'])
+
+    @property
+    def EndGameClock(self,):
+        # Moment Trans Only to start
+        return(self['EndGameClock'])
+
+    @property
+    def FromPlayer(self,):
+        return(self['FromPlayer'])
+
+    @property
+    def ToPlayer(self,):
+        return(self['ToPlayer'])
+
+
+class BallTransition(MomentBallTransition, EventBallTransition):
+
+    """
+    Should contain all info related to a ball transition
+    Should allow for callable attributes, like Event Class
+    """
+
+    __slots__ = ()
+
+    # what about moments trans v. events trans?
+
+
+    def preprocess(self,):
+        pass
+
+    @property
+    def eventId(self,):
+        return(self['eventId'])
+
+    @property
+    def momentId(self,):
+        return(self['momentId'])
+
+    
+
 class NBAGameBasic:
 
 
@@ -258,19 +439,22 @@ class GameSegments(GameSubpartFull):
         if not self.__preprocess_flag:
 ##            self._moments.preprocess()
 ##            self._events.preprocess()
-            self._init_segments()
+            self._initSegments()
             self.__preprocess_flag = True
         else:
             pass
 
 
     def extractTransitionGraph(self,):
-        all_transitions = []
+        nodes = set()
+        edges = []
         self.preprocess()
-        for s in self.game_segments:
-            edges = s.ball_trans_graph                # something like this?
-            all_transitions.extend(s.transitions)   # not quite this
-        self.transition_graph = all_transitions
+        for s in self.segments:
+            graph = s.ball_trans_graph
+            nodes.update(set(graph['Nodes']))
+            edges.extend(graph['Edges'])
+        self.transition_graph = {'Nodes' : nodes,
+                                 'Edges' : edges}
 
 
 class GameMoments(GameSubpartFull):
@@ -450,16 +634,20 @@ class Segment(GameSubpartBasic):
             self._tag = '_events'
         elif self._moment:
             self._tag = '_moment'
+        self.__preprocess_flag = False
 
 
     def preprocess(self,):
-        pass
-##        self.moment.preprocess()
-##        self.events.preprocess()
+        if not self.__preprocess_flag:
+            # Account for missing moment, events
+##            self._moment.preprocess()
+##            self._events.preprocess()
+            self.__preprocess_flag = True
 
 
     def _matchTransitions(self,):
-         segmentsHelper.matchEventsMomentsTransitions(self,)
+         segmentsHelper.matchEventsMomentsTransitions(self,
+                                                      BallTransition)
 
 
     @property
@@ -488,6 +676,13 @@ class Segment(GameSubpartBasic):
 
 
     @property
+    def _player_ids(self,):
+        p = self.players['home']
+        p.extend(self.players['away'])
+        return(p)
+
+
+    @property
     def eventsId(self,):
         if self._events:
             return(self._events.ind)
@@ -505,47 +700,57 @@ class Segment(GameSubpartBasic):
 
     @property
     def ball_transitions(self,):
-        if '_transitions' not in self.__dict__.keys():
-            self._identifyActionsAndPasses()
-            self._transitions = segmentsHelper.\
-                                determineBallTransitions(self)
-        return(self._transitions)
+        if '_ball_transitions' not in self.__dict__.keys():
+            segmentsHelper.matchEventsMomentsTransitions(self,
+                                                         BallTransition)
+        return(self._ball_transitions)
 
 
     @property
     def events_ball_transitions(self,):
         if "_ebt" not in self.__dict__.keys():
-            cols = list(self._events.ball_transitions.columns)
-            cols.insert(0, 'ind')
-            self._ebt = [EventBallTransition({k : v \
-                                              for (k,v) in zip(cols, trans)}) \
-                        for trans in self._events.ball_transitions.itertuples()]
-            self._ebt = [e for e in self._ebt if e['TransitionType'] not in \
-                         ['MadeShot', 'MissShot',
-                          'Turnover', 'Rebound',
-                          'Steal', 'Inbounds'] \
-                         and e['ToPlayer'] != e['FromPlayer']]
-            for i, et in enumerate(self._ebt):
-                et['ind'] = i
+            if self.eventsId != None:
+                cols = list(self._events.ball_transitions.columns)
+                cols.insert(0, 'ind')
+                self._ebt = [EventBallTransition({k : v \
+                                                  for (k,v) in zip(cols, trans)}) \
+                            for trans in self._events.ball_transitions.itertuples()]
+                self._ebt = [e for e in self._ebt if e['TransitionType'] not in \
+                             ['MadeShot', 'MissShot',
+                              'Turnover', 'Rebound',
+                              'Steal', 'Inbounds'] \
+                             and e['ToPlayer'] != e['FromPlayer']]
+                for i, et in enumerate(self._ebt):
+                    et['ind'] = i
+            else:
+                self._ebt = []
         return(self._ebt)
 
 
     @property
     def moment_ball_transitions(self,):
         if "_mbt" not in self.__dict__.keys():
-            cols = list(self._moment.ball_transitions.columns)
-            cols.insert(0, 'ind')
-            self._mbt = [MomentBallTransition({k : v \
-                                               for (k,v) in zip(cols, trans)}) \
-                        for trans in self._moment.ball_transitions.itertuples()]
+            if self.momentId != None:
+                cols = list(self._moment.ball_transitions.columns)
+                cols.insert(0, 'ind')
+                self._mbt = [MomentBallTransition({k : v \
+                                                   for (k,v) in zip(cols, trans)}) \
+                            for trans in self._moment.ball_transitions.itertuples()]
+            else:
+                self._mbt = []
         return(self._mbt)
 
 
     @property
     def ball_trans_graph(self,):
         if '_trans_graph' not in self.__dict__.keys():
-            self._trans_graph = segmentsHelper.\
-                                transitions2graph(self.ball_transitions)
+            nodes = self._player_ids
+            nodes.extend(['FAIL', 'SUCCESS', 'TURNOVER',
+                          'STEAL', 'INBOUNDS',
+                          'REBOUND', 'OFFREBOUND', 'DEFREBOUND'])
+            self._trans_graph = {'Edges' : segmentsHelper.\
+                                 transitions2graph(self.ball_transitions),
+                                 'Nodes' : nodes}
         return(self._trans_graph)
     
 
@@ -558,10 +763,13 @@ class Moment(GameSubpartBasic):
         self._data = moment
         self._meta = meta
         self._count = self._data.shape[0]
+        self.__preprocess_flag = False
 
 
     def preprocess(self, ):
-        _ = self.ball_transitions
+        if not self.__preprocess_flag:
+            _ = self.ball_transitions
+            self.__preprocess_flag = True
 
 
     @property
@@ -684,8 +892,10 @@ class Events(GameSubpartBasic):
 
 
     def preprocess(self,):
-        self._determineEventsType()
-        _ = self.ball_transitions
+        if not self.__preprocess_flag:
+            self._determineEventsType()
+            _ = self.ball_transitions
+            self.__preprocess_flag = True
     
 
     @property
@@ -736,238 +946,4 @@ class Events(GameSubpartBasic):
         return(self._transitions)
 
 
-
-class Event(dict):
-
-    """
-    game clock, shot clock, quarter, player id / name, event type,
-    event subtype, pbp sequence number, original pbp text
-    """
-
-    __slots__ = ()
-
-
-    def preprocess(self,):
-        pass
-
-
-    @property
-    def DESCRIPTION(self,):
-        return(self['DESCRIPTION'])
-
-    @property
-    def Event(self,):
-        return(self['Event'])
-
-    @property
-    def EVENTMSGACTIONTYPE(self,):
-        return(self['EVENTMSGACTIONTYPE'])
-
-    @property
-    def EVENTMSGTYPE(self,):
-        return(self['EVENTMSGTYPE'])
-
-    @property
-    def EVENTNUM(self,):
-        return(self['EVENTNUM'])
-
-    @property
-    def GAMECLOCK(self,):
-        return(self['GAMECLOCK'])
-
-    @property
-    def PERIOD(self,):
-        return(self['PERIOD'])
-
-    @property
-    def pid(self,):
-        return(self['pid'])
-    
-    @property
-    def Player(self,):
-        return(self['Player'])
-
-    @property
-    def PlayersOnCourt(self,):
-        return(self['PlayersOnCourt'])
-
-    @property
-    def Team(self,):
-        return(self['Team'])
-    
-
-class BallTransition(dict):
-
-    """
-    Should contain all info related to a ball transition
-    Should allow for callable attributes, like Event Class
-    """
-
-    __slots__ = ()
-
-    # what about moments trans v. events trans?
-
-
-    def preprocess(self,):
-        pass
-
-    @property
-    def ind(self,):
-        pass
-
-    @property
-    def eventId(self,):
-        pass
-
-    @property
-    def momentId(self,):
-        pass
-
-    @property
-    def StartIndx(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def EndIndx(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def Period(self,):
-        pass
-
-    @property
-    def StartGameClock(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def EndGameClock(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def GameClock(self,):
-        # Event Trans Only to start
-        pass
-
-    @property
-    def FromPlayer(self,):
-        pass
-
-    @property
-    def ToPlayer(self,):
-        pass
-
-    @property
-    def TransitionType(self,):
-        # Event Trans Only to start
-        pass
-
-    @property
-    def TransSubType(self,):
-        # Event Trans Only to start
-        pass
-
-
-
-
-class EventBallTransition(dict):
-
-    """
-    Should contain all info related to a ball transition
-    Should allow for callable attributes, like Event Class
-    """
-
-    __slots__ = ()
-
-    # what about moments trans v. events trans?
-
-
-    def preprocess(self,):
-        pass
-
-    @property
-    def ind(self,):
-        pass
-
-    @property
-    def Period(self,):
-        pass
-
-    @property
-    def GameClock(self,):
-        # Event Trans Only to start
-        pass
-
-    @property
-    def FromPlayer(self,):
-        pass
-
-    @property
-    def ToPlayer(self,):
-        pass
-
-    @property
-    def TransitionType(self,):
-        # Event Trans Only to start
-        pass
-
-    @property
-    def TransSubType(self,):
-        # Event Trans Only to start
-        pass
-
-
-class MomentBallTransition(dict):
-
-    """
-    Should contain all info related to a ball transition
-    Should allow for callable attributes, like Event Class
-    """
-
-    __slots__ = ()
-
-    # what about moments trans v. events trans?
-
-
-    def preprocess(self,):
-        pass
-
-    @property
-    def ind(self,):
-        pass
-
-    @property
-    def StartIndx(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def EndIndx(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def Period(self,):
-        pass
-
-    @property
-    def StartGameClock(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def EndGameClock(self,):
-        # Moment Trans Only to start
-        pass
-
-    @property
-    def FromPlayer(self,):
-        pass
-
-    @property
-    def ToPlayer(self,):
-        pass
 

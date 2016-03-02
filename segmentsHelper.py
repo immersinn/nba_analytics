@@ -110,7 +110,7 @@ def matchEventsMoments(game_segments):
     return(matches)
 
 
-def matchEventsMomentsTransitions(s, method=''):
+def matchEventsMomentsTransitions(s, bt_class, method=''):
 
     """
         matches = mergeMatches(matches, matches_t3)
@@ -119,25 +119,27 @@ def matchEventsMomentsTransitions(s, method=''):
         passes = [i for i in range(len(pos_events)) if i not in non_pass_pt]
     """
 
-##    getEventsAndPasses(p2p_trans, pos_events)
-##    def getEventsAndPasses(transitions, pos_events)
-
-    # pos_events are from moments
-    # p2p_trans are from events
-    # go figure...
-
-    # both are expected to be dictionaries...
+    bt = []
     
-##    if not transitions:
-##        events = []
-##        passes = [i for i in range(len(pos_events))]
-##    elif not pos_events:
-##        events = []
-##        passes = []
+    if s.eventsId == None:
+        nMomTrans = len(s.moment_ball_transitions)
+        events = []
+        passes = [i for i in range(nMomTrans)]
+        non_pass_pt = []
+        
+    elif s.momentId == None:
+        events = []
+        passes = []
+        nMomTrans = 0
 
-    if False:
-        pass
-    
+        for t in s.events_ball_transitions:
+            new_dict = t.copy()
+            _ = new_dict.pop('EventId')
+            eid = new_dict['ind']
+            new_dict = applyMissingMomentKeys(new_dict)
+            new_dict['eventId'] = eid
+            bt.append(bt_class(new_dict))      
+        
     else:
 
         # Number of Transitions
@@ -172,7 +174,7 @@ def matchEventsMomentsTransitions(s, method=''):
                         matches_t2.append((i,j))
                         break
 
-        updateEventsInboundTransitions(s, matches_t2)
+        updateEventsInboundTransition(s, matches_t2)
         matches = mergeMatches(matches, matches_t2)
 
 
@@ -195,28 +197,117 @@ def matchEventsMomentsTransitions(s, method=''):
 
         matches = mergeMatches(matches, matches_t3)
         non_pass_pt = [p for (t,p) in matches]
-
-
         events = [i for i in range(nMomTrans) if i in non_pass_pt]
         passes = [i for i in range(nMomTrans) if i not in non_pass_pt]
-    
-        ## Create complete list of transitions for Segment
 
-        # some stuff to do before:
-        # Create Pass events in the same format as pbp events
-        # With sufficient info to create an edge
-        for m_ind in passes:
-            updateMomentPassEvents(s.moment_ball_transitions[m_ind])
             
-##        # Update edges for the game
-##        for p in passes:
-##            edges.append(extractSimpleEdgeData(p))
-##        for t in n2n_trans:
-##            edges.append(extractSimpleEdgeData(t))
 
-        ## Don't return anything; update segment directly
+    # Merge events and moment transitions
+    for i in range(nMomTrans):
+        if i in non_pass_pt:
+            w = non_pass_pt.index(i)
+            e,m = matches[w]
+            new_dict = s.events_ball_transitions[e].copy()
+            _ = new_dict.pop('EventId')
+            eid = new_dict['ind']
+            new_dict.update(s.moment_ball_transitions[m].copy())
+            new_dict['eventId'] = eid; new_dict['momentId'] = i
+        else:
+            new_dict = {k : v for (k,v) in \
+                        s.moment_ball_transitions[i].items()}
+            new_dict = applyMissingEventKeys(new_dict)
+            new_dict['momentId'] = i
+        bt.append(bt_class(new_dict))
 
-        return(passes, events)
+    s._ball_transitions = bt
+
+
+def transitions2graph(ball_transitions):
+    edges = []
+    for bt in ball_transitions:
+        if bt['TransitionType'] == 'Pass':
+            edges.append(passTransitionIntoEdge_v01(bt))
+        else:
+            edges.extend(splitTransitionIntoEdges_v01(bt))
+    return(edges)
+
+
+def passTransitionIntoEdge_v01(bt):
+    return({'To' : bt['ToPlayer'],
+            'From' : bt['FromPlayer'],
+            'Start' : bt['StartGameClock'],
+            'End' : bt['EndGameClock'],
+            'Period' : bt['Period']})
+
+
+def splitTransitionIntoEdges_v01(bt):
+    ttypes = bt['TransitionType'].split('-')
+    times = gcFromBT(bt)
+    
+    if ttypes[0].find('Miss') > -1:
+        # create TO FAIL edge
+        to = 'FAIL'
+    elif ttypes[0].find('Made') > -1:
+        # create TO SUCCESS edge
+        to = 'SUCCESS'
+    elif ttypes[0] == 'Turnover':
+        # create TO TURNOVER edge
+        to = 'TURNOVER'
+    else:
+        to = bt['TransitionType']
+
+    if ttypes[1] in ['Rebound', 'OffRebound', 'DefRebound']:
+        # create FROM REBOUND edge
+        fr = ttypes[1].upper()
+    elif ttypes[1] == 'Inbounds':
+        # create FROM INBOUNDS edge
+        fr = 'INBOUNDS'
+    elif ttypes[1] == 'Steal':
+        # create FROM STEAL edge
+        fr = 'STEAL'
+
+    edge1 = {'From' : bt['FromPlayer'],
+             'To' : to,
+             'Start' : times[0],
+             'End' : numpy.float64(-1),
+             'Period' : bt['Period']}
+
+    edge2 = {'From' : fr,
+             'To' : bt['ToPlayer'],
+             'Start' : numpy.float64(-1),
+             'End' : times[1],
+             'Period' : bt['Period']}
+
+    return([edge1, edge2])
+
+
+
+def gcFromBT(bt):
+    """Return appropriate GameClock from a ball transition dict"""
+    if bt['StartGameClock']:
+        return([bt['StartGameClock'],
+                bt['EndGameClock']])
+    else:
+        return([bt['GameClock'],
+                bt['GameClock']])
+    
+
+
+def applyMissingEventKeys(new_dict):
+    new_dict['TransitionType'] = 'Pass'
+    new_dict['TransSubType'] = ''
+    new_dict['GameClock'] = numpy.int64(-1)
+    new_dict['eventId'] = numpy.int64(-1)
+    return(new_dict)
+
+
+def applyMissingMomentKeys(new_dict):
+    new_dict['StartIndx'] = numpy.int64(-1)
+    new_dict['EndIndx'] = numpy.int64(-1)
+    new_dict['StartGameClock'] = numpy.float64(-1)
+    new_dict['EndGameClock'] = numpy.float64(-1)
+    new_dict['momentId'] = numpy.int64(-1)
+    return(new_dict)
 
 
 def formatMomentTime(time, sORe):
