@@ -5,11 +5,11 @@ from . import segmentsHelper
 from . import momentsCalculations
 from .dataFieldNames import *
 
-from importlib import reload
-reload(eventsHelper)
-reload(momentsHelper)
-reload(momentsCalculations)
-reload(segmentsHelper)
+##from importlib import reload
+##reload(eventsHelper)
+##reload(momentsHelper)
+##reload(momentsCalculations)
+##reload(segmentsHelper)
 
 
 
@@ -176,8 +176,6 @@ class BallTransition(MomentBallTransition, EventBallTransition):
     """
 
     __slots__ = ()
-
-    # what about moments trans v. events trans?
 
 
     def preprocess(self,):
@@ -388,18 +386,12 @@ class GameSegments(GameSubpartFull):
         if type(moments) == GameMoments:
             self._moments = moments
         else:
-            pass
+            self._moments = GameMoments(game_info, moments)
         if type(pbp) == GameEvents:
             self._events = pbp
         else:
-            pass
+            self._events = GameEvents(game_info, pbp)
 
-##        self._moments = moments
-##        self._events = pbp
-            
-##        self._init_moments_events(game_info,
-##                                  player_info,
-##                                  moments, pbp)
         self.__preprocess_flag = False
 
 
@@ -437,24 +429,28 @@ class GameSegments(GameSubpartFull):
 
     def preprocess(self,):
         if not self.__preprocess_flag:
-##            self._moments.preprocess()
-##            self._events.preprocess()
+            print('Preprocessing moments...')
+            self._moments.preprocess()
+            print('Preprocessing events...')
+            self._events.preprocess()
             self._initSegments()
             self.__preprocess_flag = True
         else:
             pass
 
-
-    def extractTransitionGraph(self,):
-        nodes = set()
-        edges = []
-        self.preprocess()
-        for s in self.segments:
-            graph = s.ball_trans_graph
-            nodes.update(set(graph['Nodes']))
-            edges.extend(graph['Edges'])
-        self.transition_graph = {'Nodes' : nodes,
-                                 'Edges' : edges}
+    @property
+    def transition_graph(self,):
+        if '_trans_graph' not in self.__dict__.keys():
+            nodes = set()
+            edges = []
+            self.preprocess()
+            for s in self.segments:
+                graph = s.ball_trans_graph
+                nodes.update(set(graph['Nodes']))
+                edges.extend(graph['Edges'])
+            self._trans_graph = {'Nodes' : nodes,
+                                     'Edges' : edges}
+        return(self._trans_graph)
 
 
 class GameMoments(GameSubpartFull):
@@ -467,12 +463,17 @@ class GameMoments(GameSubpartFull):
         self._initGameAttributes(game_info)
         self._data = movements_info
         self._debug_mode = debug_mode
+        self.__preprocess_flag = False
 
 
     def preprocess(self, ):
-        self._createMoments()
-        self._data = None
-        self._ppMoments()
+        if not self.__preprocess_flag:
+            self._createMoments()
+            self._data = None
+            self._ppMoments()
+            self.__preprocess_flag = True
+        else:
+            pass
 
 
     def _createMoments(self,):
@@ -523,11 +524,9 @@ class GameEvents(GameSubpartFull):
             self._createEventsIndi()
             self._determinePeriods()
             self._playersOnCourt()
-##            _ = self.ball_transitions
             self._createEventsGroups()
             for e in self.events:
                 e.preprocess()
-##            self._pairEventsTransitions()
             self.__preprocess_flag = True
             
         else:
@@ -597,16 +596,6 @@ class GameEvents(GameSubpartFull):
                       eventsHelper.splitEventsBySubsQuarters(self._events)
         self.events = [Events([self.ix(i) for i in el], j) \
                        for j,el in enumerate(self._events2event_list)]
-
-
-    def _pairEventsTransitions(self,):
-        count = 0
-        for e in self.events:
-            if e.event_type in ['SUB', 'TIMEOUT']:
-                e.transitions = []
-            else:
-                e.transitions = self.ball_transitions[count]['TransitionsData']
-                count += 1
                 
 
     @property
@@ -639,15 +628,11 @@ class Segment(GameSubpartBasic):
 
     def preprocess(self,):
         if not self.__preprocess_flag:
-            # Account for missing moment, events
-##            self._moment.preprocess()
-##            self._events.preprocess()
+            if self._moment:
+                self._moment.preprocess()
+            if self._events:
+                self._events.preprocess()
             self.__preprocess_flag = True
-
-
-    def _matchTransitions(self,):
-         segmentsHelper.matchEventsMomentsTransitions(self,
-                                                      BallTransition)
 
 
     @property
@@ -677,8 +662,9 @@ class Segment(GameSubpartBasic):
 
     @property
     def _player_ids(self,):
-        p = self.players['home']
+        p = self.players['home'].copy()
         p.extend(self.players['away'])
+        p = sorted(p)
         return(p)
 
 
@@ -744,7 +730,7 @@ class Segment(GameSubpartBasic):
     @property
     def ball_trans_graph(self,):
         if '_trans_graph' not in self.__dict__.keys():
-            nodes = self._player_ids
+            nodes = self._player_ids.copy()
             nodes.extend(['FAIL', 'SUCCESS', 'TURNOVER',
                           'STEAL', 'INBOUNDS',
                           'REBOUND', 'OFFREBOUND', 'DEFREBOUND'])
@@ -768,28 +754,9 @@ class Moment(GameSubpartBasic):
 
     def preprocess(self, ):
         if not self.__preprocess_flag:
-            _ = self.ball_transitions
             self.__preprocess_flag = True
-
-
-    @property
-    def ball_transitions(self,):
-        if '_transitions' not in self.__dict__.keys():
-            self._transitions = momentsCalculations.\
-                                determineBallTransitions(self._data,
-                                                         self._player_ids.copy(),
-                                                         self.period,
-                                                         self.ball_posessions)
-        return(self._transitions)
-                                                                
-
-    @property
-    def ball_posessions(self,):
-        if '_ball_poss' not in self.__dict__.keys():
-            self._ball_poss = momentsCalculations.\
-                              determineBallPosessions(self._data,
-                                                      self._player_ids)
-        return(self._ball_poss)
+        else:
+            pass
 
 
     @property
@@ -816,17 +783,39 @@ class Moment(GameSubpartBasic):
 
     @property
     def players(self, ):
-        return({'home' : list(self._meta['HomePlayers']),
-                'away' : list(self._meta['AwayPlayers'])})
+        return({'home' : list(self._meta['HomePlayers'].copy()),
+                'away' : list(self._meta['AwayPlayers'].copy())})
 
     @property
     def _player_ids(self,):
-        return(self._meta['PlayerIds'])
+        p = self._meta['PlayerIds'].copy()
+        p.remove(-1)
+        return(p)
 
 
     @property
     def events(self,):
         return(self._meta['EventIds'])
+
+
+    @property
+    def ball_transitions(self,):
+        if '_transitions' not in self.__dict__.keys():
+            self._transitions = momentsCalculations.\
+                                determineBallTransitions(self._data,
+                                                         self._player_ids.copy(),
+                                                         self.period,
+                                                         self.ball_posessions)
+        return(self._transitions)
+                                                                
+
+    @property
+    def ball_posessions(self,):
+        if '_ball_poss' not in self.__dict__.keys():
+            self._ball_poss = momentsCalculations.\
+                              determineBallPosessions(self._data,
+                                                      self._player_ids.copy())
+        return(self._ball_poss)
 
 
     def player2playerDist(self, pid1, pid2):
@@ -844,7 +833,6 @@ class Moment(GameSubpartBasic):
 
 class Events(GameSubpartBasic):
 
-
     _SUB_TYPE_NAME = 'events'
     null_event = Event({'Event' : 'NONE',
                         'Player' : '',
@@ -859,10 +847,7 @@ class Events(GameSubpartBasic):
 
 
     def __init__(self, events, ind):#, player_info, players,):
-        # set the info passed
-        # reduce list of players for each line item to a single list
-        # set players
-        # other??
+
         self.events = events
         self._ind = ind
         self._count = len(events)
@@ -875,10 +860,6 @@ class Events(GameSubpartBasic):
 
     def __str__(self,):
         return(str(self.events))
-
-
-    def _determineBallTransitions(self,):
-        pass
 
 
     def _determineEventsType(self,):
@@ -894,8 +875,9 @@ class Events(GameSubpartBasic):
     def preprocess(self,):
         if not self.__preprocess_flag:
             self._determineEventsType()
-            _ = self.ball_transitions
             self.__preprocess_flag = True
+        else:
+            pass
     
 
     @property
@@ -915,7 +897,15 @@ class Events(GameSubpartBasic):
 
     @property
     def players(self,):
-        return(self[0]['PlayersOnCourt'])
+        return(self[0]['PlayersOnCourt'].copy())
+
+
+    @property
+    def _player_ids(self,):
+        p = self.players['home'].copy()
+        p.extend(self.players['away'])
+        p = sorted(p)
+        return(p)
 
 
     @property
@@ -935,14 +925,14 @@ class Events(GameSubpartBasic):
                 self._transitions = eventsHelper.\
                                     EMPTY_TRANSITIONS_PLACEHOLDER
             else:
-##                print('Finding transitions for the first time...')
                 ef = eventsHelper.TransitionsFinder(self.events,
                                                     self.null_event)
                 ef.getTransitions()
                 if len(ef.event_dict) == 1:
                     self._transitions = ef.event_dict[0]['TransitionsData']
-                else:
-                    self._transitions = ef.event_dict
+                elif len(ef.event_dict) == 0:
+                    self._transitions = eventsHelper.\
+                                        EMPTY_TRANSITIONS_PLACEHOLDER
         return(self._transitions)
 
 

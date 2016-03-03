@@ -77,8 +77,7 @@ def determineBallTransitions(df, pids,
 
 
 
-def determineBallPosessions(df, pids,
-                           max_dist=3, max_radius=5):
+def determineBallPosessions(df, pids, max_dist=3, max_radius=5):
 
     pbd = ballPlayerDists(df, pids)
     radius = df.radius[list(range(0,df.shape[0],11))]
@@ -201,7 +200,7 @@ def p2pDist(player_a, player_b):
 
 def pairwisePlayerDists(df):
     
-    player_ids = list(pd.unique(df.player_id))
+    player_ids = list(pandas.unique(df.player_id))
     player_ids.remove(-1)
 
     distances = {}
@@ -236,8 +235,8 @@ def ballPlayerDists(df, player_ids):
     """
 
     
-##    player_ids = list(pd.unique(df.player_id))
-    player_ids.remove(-1)
+##    player_ids = list(pandas.unique(df.player_id))
+##    player_ids.remove(-1)
     ball_df = playerLoc(df, -1)
     ball_distances = pandas.DataFrame()
 

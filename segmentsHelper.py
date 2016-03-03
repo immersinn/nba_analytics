@@ -10,7 +10,8 @@ def matchEventsMoments(game_segments):
     for k in game_segments._moments:
         seg_ssq[k.ind] = {'Start' : k.start,
                           'End' : k.end,
-                          'Quarter' : k.period}
+                          'Quarter' : k.period,
+                          'Players' : k._player_ids}
 
     # Play by Play meta
     pbp_ssq = {}
@@ -18,7 +19,8 @@ def matchEventsMoments(game_segments):
         pbp_ssq[k.ind] = {'Start' : k.start,
                           'End' : k.end,
                           'Quarter' : k.period,
-                          'Type': k.event_type}
+                          'Type': k.event_type,
+                          'Players' : k._player_ids}
         
     # Find Matches
     matches = []
@@ -58,32 +60,35 @@ def matchEventsMoments(game_segments):
                 if abs(tmp_seg_ind) > len(s_keys):
                     break
                 cur_seg = segs[s_keys[tmp_seg_ind]]
-                # Check to see if start time of either current portion resides
-                # within range of other portion
-                if cur_seg['Start'] <= cur_pbp['Start'] and \
-                   cur_seg['Start'] >= cur_pbp['End']:
-                    matches.append({'EventsId' : pk,
-                                    'MomentId' : s_keys[tmp_seg_ind],
-                                    'Start' : cur_pbp['Start'],
-                                    'End' : cur_pbp['End'],
-                                    'Period' : cur_pbp['Quarter']})
-                    e_matched.append(pk)
-                    s_matched.append(s_keys[tmp_seg_ind])
-                    cur_seg_ind = tmp_seg_ind - 1
-                    break
-                elif cur_pbp['Start'] <= cur_seg['Start'] and \
-                     cur_pbp['Start'] >= cur_seg['End']:
-                    matches.append({'EventsId' : pk,
-                                    'MomentId' : s_keys[tmp_seg_ind],
-                                    'Start' : formatMomentTime(cur_seg['Start'], 'start'),
-                                    'End' : formatMomentTime(cur_seg['End'], 'end'),
-                                    'Period' : cur_seg['Quarter']})
-                    e_matched.append(pk)
-                    s_matched.append(s_keys[tmp_seg_ind])
-                    cur_seg_ind = tmp_seg_ind - 1
-                    break
+                if cur_seg['Players'] == cur_pbp['Players']:
+                    # Check to see if start time of either current portion resides
+                    # within range of other portion
+                    if cur_seg['Start'] <= cur_pbp['Start'] and \
+                       cur_seg['Start'] >= cur_pbp['End']:
+                        matches.append({'EventsId' : pk,
+                                        'MomentId' : s_keys[tmp_seg_ind],
+                                        'Start' : cur_pbp['Start'],
+                                        'End' : cur_pbp['End'],
+                                        'Period' : cur_pbp['Quarter']})
+                        e_matched.append(pk)
+                        s_matched.append(s_keys[tmp_seg_ind])
+                        cur_seg_ind = tmp_seg_ind - 1
+                        break
+                    elif cur_pbp['Start'] <= cur_seg['Start'] and \
+                         cur_pbp['Start'] >= cur_seg['End']:
+                        matches.append({'EventsId' : pk,
+                                        'MomentId' : s_keys[tmp_seg_ind],
+                                        'Start' : formatMomentTime(cur_seg['Start'], 'start'),
+                                        'End' : formatMomentTime(cur_seg['End'], 'end'),
+                                        'Period' : cur_seg['Quarter']})
+                        e_matched.append(pk)
+                        s_matched.append(s_keys[tmp_seg_ind])
+                        cur_seg_ind = tmp_seg_ind - 1
+                        break
+                    else:
+                        tmp_seg_ind -= 1
                 else:
-                    tmp_seg_ind -= 1
+                        tmp_seg_ind -= 1
 
     e_not_matched = set(pbp_ssq.keys()).difference(e_matched)
     s_not_matched = set(seg_ssq.keys()).difference(s_matched)

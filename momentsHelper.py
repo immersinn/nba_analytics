@@ -225,9 +225,11 @@ def initSubMoment(m):
 
     if len(pids) != 11:
         mdf = removeFalsePlayers(mdf)
-    if len(pandas.unique(mdf.player_id)) == 11 and mdf.shape[0] % 11 != 0:
+    if len(pandas.unique(mdf.player_id)) == 11 and \
+       mdf.shape[0] % 11 != 0:
         mdf = removeMissedTimestamps(mdf)
-    if len(pandas.unique(mdf.player_id)) == 11:
+    if len(pandas.unique(mdf.player_id)) == 11 and \
+       -1 in pandas.unique(mdf.player_id):
         return(mdf)
     else:
         return(pandas.DataFrame())
