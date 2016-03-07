@@ -1,3 +1,6 @@
+import sys
+sys.path.append('gits')
+import pickle
 from nba_analytics import fileHelper
 from nba_analytics import nbaGame
 
@@ -25,3 +28,6 @@ elif method == 2:
 
 graph = gs.transition_graph
 print(graph['Nodes'])
+
+with open('Analytics/nba_analytics/singleGameGraph.pkl', 'wb') as f1:
+    pickle.dump(gs.transition_graph, f1)
