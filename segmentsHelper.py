@@ -3,6 +3,42 @@ import numpy
 import pandas
 
 
+NON_PLAYER_NODES = ['FAIL', 'SUCCESS',
+                    'TURNOVER', 'STEAL',
+                    'INBOUNDS', 'REBOUND',
+                    'OFFREBOUND', 'DEFREBOUND',]
+
+
+def mergeSegmentGraphsForGame(game_segments):
+    #
+    home = game_segments.team_info['home']
+    away = game_segments.team_info['away']
+    home_edges = []; away_edges = [];
+    home_nodes = set(home['players']); home_nodes.update(NON_PLAYER_NODES)
+    away_nodes = set(away['players']); away_nodes.update(NON_PLAYER_NODES)
+    nodes = set()
+
+    for s in game_segments.segments:
+        graph = s.ball_trans_graph
+        nodes.update(set(graph['Nodes']))
+        for e in graph['Edges']:
+            if e['To'] in home_nodes and \
+                 e['From'] in home_nodes:
+                home_edges.append(e.copy())
+            elif e['To'] in away_nodes and \
+               e['From'] in away_nodes:
+                away_edges.append(e.copy())
+
+    game_segments._trans_graph = {'home' : {'TeamInfo' : home,
+                                            'Nodes' : home_nodes,
+                                            'Edges' : home_edges},
+                                  'away' : {'TeamInfo' : away,
+                                            'Nodes' : away_nodes,
+                                            'Edges' : away_edges},
+                                  }
+    
+    
+
 def matchEventsMoments(game_segments):
 
     # Segments meta
@@ -204,8 +240,6 @@ def matchEventsMomentsTransitions(s, bt_class, method=''):
         non_pass_pt = [p for (t,p) in matches]
         events = [i for i in range(nMomTrans) if i in non_pass_pt]
         passes = [i for i in range(nMomTrans) if i not in non_pass_pt]
-
-            
 
     # Merge events and moment transitions
     for i in range(nMomTrans):

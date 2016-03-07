@@ -5,11 +5,11 @@ from . import segmentsHelper
 from . import momentsCalculations
 from .dataFieldNames import *
 
-##from importlib import reload
-##reload(eventsHelper)
-##reload(momentsHelper)
-##reload(momentsCalculations)
-##reload(segmentsHelper)
+from importlib import reload
+reload(eventsHelper)
+reload(momentsHelper)
+reload(momentsCalculations)
+reload(segmentsHelper)
 
 
 
@@ -438,18 +438,11 @@ class GameSegments(GameSubpartFull):
         else:
             pass
 
+
     @property
     def transition_graph(self,):
         if '_trans_graph' not in self.__dict__.keys():
-            nodes = set()
-            edges = []
-            self.preprocess()
-            for s in self.segments:
-                graph = s.ball_trans_graph
-                nodes.update(set(graph['Nodes']))
-                edges.extend(graph['Edges'])
-            self._trans_graph = {'Nodes' : nodes,
-                                     'Edges' : edges}
+            mergeSegmentGraphsForGame(game_segments)
         return(self._trans_graph)
 
 
