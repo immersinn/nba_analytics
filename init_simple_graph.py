@@ -5,11 +5,13 @@ from graph_tool.all import *
 with open('Analytics/nba_analytics/singleGameGraph.pkl', 'rb') as f1:
     gs = pickle.load(f1)
 
+home_nodes = set()
+for e in gs.transition_graph['home']['Edges']:
+    home_nodes.update(set([e['From'],e['To']]))
+vert_lookup = {n:i for (n,i) in zip(home_nodes, range(len(home_nodes)))}
+
 
 hg = Graph()
-vert_list = hg.add_vertex(len(gs.transition_graph['home']['Nodes']))
-vert_lookup = {k:v for k,v in zip(gs.transition_graph['home']['Nodes'],
-                                  range(len(gs.transition_graph['home']['Nodes'])))}
 edge_list = []
 for e in gs.transition_graph['home']['Edges']:
     edge_list.append(hg.add_edge(vert_lookup[e['From']],
