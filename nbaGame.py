@@ -5,11 +5,11 @@ from . import segmentsHelper
 from . import momentsCalculations
 from .dataFieldNames import *
 
-from importlib import reload
-reload(eventsHelper)
-reload(momentsHelper)
-reload(momentsCalculations)
-reload(segmentsHelper)
+##from importlib import reload
+##reload(eventsHelper)
+##reload(momentsHelper)
+##reload(momentsCalculations)
+##reload(segmentsHelper)
 
 
 

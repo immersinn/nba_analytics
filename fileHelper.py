@@ -1,13 +1,24 @@
 
+import os
+import sys
+import platform
 import pickle
 from pandas import read_pickle
 
 from .dataFieldNames import *
 
 
-def loadFiles(pbp_file='/home/immersinn/Data/DataDumps/NBA/pbpSubset02.pkl',
-              moments_file='/home/immersinn/Data/DataDumps/NBA/momentsSubset02.pkl'):
+def loadFiles(pbp_file='DataDumps/NBA/pbpSubset02.pkl',
+              moments_file='DataDumps/NBA/momentsSubset02.pkl'):
     # [u'0041400161', u'0041400163', u'0041400164', u'0021400648']
+
+    if 'trusty' in platform.platform():
+        base = '/media/immersinn/dataDumps' 
+    elif 'wily' in platform.platform():
+        base = '/home/immersinn/Data'
+
+    pbp_file = os.path.join(base, pbp_file)
+    moments_file = os.path.join(base, moments_file)
 
 ##    with open('/home/immersinn/Data/DataDumps/NBA/momentsSubset02.pkl', 'rb') as f1:
 ##        moments = pickle.Unpickler(f1).load()
